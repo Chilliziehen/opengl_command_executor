@@ -1,0 +1,33 @@
+{
+  "id": 8,
+  "label": "Texture#8",
+  "target": 3553,
+  "width": 2832,
+  "height": 1281,
+  "depth": 0,
+  "internalFormat": 35056,
+  "format": 34041,
+  "pixelType": 34042,
+  "sourceKind": "texStorage2D",
+  "compressed": false,
+  "levels": 1,
+  "parameters": {
+    "10240": 9728,
+    "10241": 9728,
+    "10242": 33071,
+    "10243": 33071,
+    "32882": 33071,
+    "33084": 0,
+    "33085": 0,
+    "34046": 1
+  },
+  "deleted": false,
+  "mipsGenerated": false,
+  "captureMethod": "DepthBlit",
+  "byteLength": 906240,
+  "capturedWidth": 708,
+  "capturedHeight": 320,
+  "capturedByteLength": 906240,
+  "hasBaselineBytes": true,
+  "dataPath": "Texture#8.bin"
+}

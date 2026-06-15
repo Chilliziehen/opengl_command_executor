@@ -1,0 +1,91 @@
+{
+  "currentProgramId": 2,
+  "currentFramebufferId": 0,
+  "currentActiveTexture": 0,
+  "currentArrayBufferId": 55,
+  "currentElementArrayBufferId": 56,
+  "currentVertexArrayId": 0,
+  "currentTextures": {
+    "0": 2,
+    "1": 9,
+    "2": 9,
+    "3": 1,
+    "5": 4,
+    "7": 5
+  },
+  "currentSamplers": {},
+  "attribs": {
+    "0": {
+      "enabled": true,
+      "size": 4,
+      "type": 5126,
+      "normalized": false,
+      "stride": 16,
+      "offset": 0,
+      "bufferId": 55,
+      "name": "vertex"
+    },
+    "1": {
+      "enabled": false,
+      "size": 3,
+      "type": 5126,
+      "normalized": false,
+      "stride": 56,
+      "offset": 12,
+      "bufferId": 61,
+      "name": "in_NORMAL0"
+    },
+    "2": {
+      "enabled": false,
+      "size": 2,
+      "type": 5126,
+      "normalized": false,
+      "stride": 56,
+      "offset": 40,
+      "bufferId": 61,
+      "name": "in_TEXCOORD0"
+    }
+  },
+  "viewport": [
+    0,
+    0,
+    2831,
+    1281
+  ],
+  "capabilities": {},
+  "clearColor": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "clearDepth": 1,
+  "clearStencil": 0,
+  "colorMask": [
+    true,
+    true,
+    true,
+    true
+  ],
+  "depthMask": true,
+  "depthFunc": 513,
+  "blendFunc": {
+    "srcRGB": 1,
+    "dstRGB": 0,
+    "srcAlpha": 1,
+    "dstAlpha": 0
+  },
+  "blendEquation": {
+    "rgb": 32774,
+    "alpha": 32774
+  },
+  "cullFaceMode": 1029,
+  "frontFace": 2305,
+  "scissorBox": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "pixelStore": {}
+}

@@ -1,0 +1,12 @@
+{
+  "id": 9,
+  "label": "Buffer#9",
+  "target": 35345,
+  "bufferType": "UBO",
+  "usage": 35048,
+  "byteLength": 720,
+  "capturedByteLength": 720,
+  "hasBaselineBytes": true,
+  "sourceKind": "CopyBufferSubData@4MBcap",
+  "dataPath": "Buffer#9.bin"
+}

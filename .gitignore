@@ -1,0 +1,22 @@
+# Build outputs
+build/
+libs/
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Clangd cache
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Third-party (populated by FetchContent/download)
+thirdparty/json/
+thirdparty/glfw/
+thirdparty/glm/

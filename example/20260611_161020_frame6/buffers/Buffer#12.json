@@ -1,0 +1,12 @@
+{
+  "id": 12,
+  "label": "Buffer#12",
+  "target": 36663,
+  "bufferType": "Other",
+  "usage": 35048,
+  "byteLength": 4096,
+  "capturedByteLength": 4096,
+  "hasBaselineBytes": true,
+  "sourceKind": "CopyBufferSubData@4MBcap",
+  "dataPath": "Buffer#12.bin"
+}

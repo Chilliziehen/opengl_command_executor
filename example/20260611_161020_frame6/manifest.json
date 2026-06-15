@@ -1,0 +1,547 @@
+{
+  "format": "tjrelic.wx.capture",
+  "version": 2,
+  "captureModel": "gl-command-resource-partial",
+  "generatedAt": "2026-06-11T08:10:20.424Z",
+  "frameIndex": 6,
+  "canvas": {
+    "width": 2832,
+    "height": 1281,
+    "cssWidth": 809,
+    "cssHeight": 366,
+    "devicePixelRatio": 3.5
+  },
+  "replayerCompatibility": {
+    "currentStandaloneReplayer": true,
+    "hasPreviewPayload": true,
+    "reason": "partial resource bytes baseline only; large resources omitted"
+  },
+  "diagnostics": {
+    "profile": "gl-command-sample-uniform-scalars-matrices-buffer-texture-payload",
+    "commandLimit": 2048,
+    "commandCount": 170,
+    "droppedCommandCount": 0,
+    "uniformCommandCount": 59,
+    "commandLimitReached": false,
+    "largeUploadSkipCount": 0,
+    "largeUploadSkips": [],
+    "resourceMetadataEnabled": true,
+    "resourceBaselineMode": "ubo",
+    "maxResourceBaselineBytes": 4194304,
+    "resourceSnapshotEnabled": false,
+    "bufferUploadPayloadEnabled": true,
+    "textureUploadPayloadEnabled": true,
+    "maxUploadBytes": 536870912,
+    "uniformValueMode": "scalars-and-matrices",
+    "maxUniformDataElements": 256
+  },
+  "projectRoot": "",
+  "sandboxRoot": "http://usr/tuanjierelic-captures",
+  "files": {
+    "commands": "commands.json",
+    "state": "state.json",
+    "shaders": "shaders.json",
+    "programs": "programs.json",
+    "framebuffers": "framebuffers.json",
+    "buffers": [
+      {
+        "id": 1,
+        "label": "Buffer#1",
+        "path": "buffers/Buffer#1.json",
+        "dataPath": "buffers/Buffer#1.bin"
+      },
+      {
+        "id": 2,
+        "label": "Buffer#2",
+        "path": "buffers/Buffer#2.json",
+        "dataPath": "buffers/Buffer#2.bin"
+      },
+      {
+        "id": 3,
+        "label": "Buffer#3",
+        "path": "buffers/Buffer#3.json",
+        "dataPath": "buffers/Buffer#3.bin"
+      },
+      {
+        "id": 4,
+        "label": "Buffer#4",
+        "path": "buffers/Buffer#4.json",
+        "dataPath": "buffers/Buffer#4.bin"
+      },
+      {
+        "id": 5,
+        "label": "Buffer#5",
+        "path": "buffers/Buffer#5.json",
+        "dataPath": "buffers/Buffer#5.bin"
+      },
+      {
+        "id": 6,
+        "label": "Buffer#6",
+        "path": "buffers/Buffer#6.json",
+        "dataPath": "buffers/Buffer#6.bin"
+      },
+      {
+        "id": 7,
+        "label": "Buffer#7",
+        "path": "buffers/Buffer#7.json",
+        "dataPath": "buffers/Buffer#7.bin"
+      },
+      {
+        "id": 8,
+        "label": "Buffer#8",
+        "path": "buffers/Buffer#8.json",
+        "dataPath": "buffers/Buffer#8.bin"
+      },
+      {
+        "id": 9,
+        "label": "Buffer#9",
+        "path": "buffers/Buffer#9.json",
+        "dataPath": "buffers/Buffer#9.bin"
+      },
+      {
+        "id": 10,
+        "label": "Buffer#10",
+        "path": "buffers/Buffer#10.json",
+        "dataPath": "buffers/Buffer#10.bin"
+      },
+      {
+        "id": 11,
+        "label": "Buffer#11",
+        "path": "buffers/Buffer#11.json",
+        "dataPath": "buffers/Buffer#11.bin"
+      },
+      {
+        "id": 12,
+        "label": "Buffer#12",
+        "path": "buffers/Buffer#12.json",
+        "dataPath": "buffers/Buffer#12.bin"
+      },
+      {
+        "id": 13,
+        "label": "Buffer#13",
+        "path": "buffers/Buffer#13.json",
+        "dataPath": "buffers/Buffer#13.bin"
+      },
+      {
+        "id": 14,
+        "label": "Buffer#14",
+        "path": "buffers/Buffer#14.json",
+        "dataPath": "buffers/Buffer#14.bin"
+      },
+      {
+        "id": 15,
+        "label": "Buffer#15",
+        "path": "buffers/Buffer#15.json",
+        "dataPath": "buffers/Buffer#15.bin"
+      },
+      {
+        "id": 16,
+        "label": "Buffer#16",
+        "path": "buffers/Buffer#16.json",
+        "dataPath": "buffers/Buffer#16.bin"
+      },
+      {
+        "id": 17,
+        "label": "Buffer#17",
+        "path": "buffers/Buffer#17.json",
+        "dataPath": "buffers/Buffer#17.bin"
+      },
+      {
+        "id": 18,
+        "label": "Buffer#18",
+        "path": "buffers/Buffer#18.json",
+        "dataPath": "buffers/Buffer#18.bin"
+      },
+      {
+        "id": 19,
+        "label": "Buffer#19",
+        "path": "buffers/Buffer#19.json",
+        "dataPath": "buffers/Buffer#19.bin"
+      },
+      {
+        "id": 20,
+        "label": "Buffer#20",
+        "path": "buffers/Buffer#20.json",
+        "dataPath": "buffers/Buffer#20.bin"
+      },
+      {
+        "id": 21,
+        "label": "Buffer#21",
+        "path": "buffers/Buffer#21.json",
+        "dataPath": "buffers/Buffer#21.bin"
+      },
+      {
+        "id": 22,
+        "label": "Buffer#22",
+        "path": "buffers/Buffer#22.json",
+        "dataPath": "buffers/Buffer#22.bin"
+      },
+      {
+        "id": 23,
+        "label": "Buffer#23",
+        "path": "buffers/Buffer#23.json",
+        "dataPath": "buffers/Buffer#23.bin"
+      },
+      {
+        "id": 24,
+        "label": "Buffer#24",
+        "path": "buffers/Buffer#24.json",
+        "dataPath": "buffers/Buffer#24.bin"
+      },
+      {
+        "id": 25,
+        "label": "Buffer#25",
+        "path": "buffers/Buffer#25.json",
+        "dataPath": "buffers/Buffer#25.bin"
+      },
+      {
+        "id": 26,
+        "label": "Buffer#26",
+        "path": "buffers/Buffer#26.json",
+        "dataPath": "buffers/Buffer#26.bin"
+      },
+      {
+        "id": 27,
+        "label": "Buffer#27",
+        "path": "buffers/Buffer#27.json",
+        "dataPath": "buffers/Buffer#27.bin"
+      },
+      {
+        "id": 28,
+        "label": "Buffer#28",
+        "path": "buffers/Buffer#28.json",
+        "dataPath": "buffers/Buffer#28.bin"
+      },
+      {
+        "id": 29,
+        "label": "Buffer#29",
+        "path": "buffers/Buffer#29.json",
+        "dataPath": "buffers/Buffer#29.bin"
+      },
+      {
+        "id": 30,
+        "label": "Buffer#30",
+        "path": "buffers/Buffer#30.json",
+        "dataPath": "buffers/Buffer#30.bin"
+      },
+      {
+        "id": 31,
+        "label": "Buffer#31",
+        "path": "buffers/Buffer#31.json",
+        "dataPath": "buffers/Buffer#31.bin"
+      },
+      {
+        "id": 32,
+        "label": "Buffer#32",
+        "path": "buffers/Buffer#32.json",
+        "dataPath": "buffers/Buffer#32.bin"
+      },
+      {
+        "id": 33,
+        "label": "Buffer#33",
+        "path": "buffers/Buffer#33.json",
+        "dataPath": "buffers/Buffer#33.bin"
+      },
+      {
+        "id": 34,
+        "label": "Buffer#34",
+        "path": "buffers/Buffer#34.json",
+        "dataPath": "buffers/Buffer#34.bin"
+      },
+      {
+        "id": 35,
+        "label": "Buffer#35",
+        "path": "buffers/Buffer#35.json",
+        "dataPath": "buffers/Buffer#35.bin"
+      },
+      {
+        "id": 36,
+        "label": "Buffer#36",
+        "path": "buffers/Buffer#36.json",
+        "dataPath": "buffers/Buffer#36.bin"
+      },
+      {
+        "id": 37,
+        "label": "Buffer#37",
+        "path": "buffers/Buffer#37.json",
+        "dataPath": "buffers/Buffer#37.bin"
+      },
+      {
+        "id": 38,
+        "label": "Buffer#38",
+        "path": "buffers/Buffer#38.json",
+        "dataPath": "buffers/Buffer#38.bin"
+      },
+      {
+        "id": 39,
+        "label": "Buffer#39",
+        "path": "buffers/Buffer#39.json",
+        "dataPath": "buffers/Buffer#39.bin"
+      },
+      {
+        "id": 40,
+        "label": "Buffer#40",
+        "path": "buffers/Buffer#40.json",
+        "dataPath": "buffers/Buffer#40.bin"
+      },
+      {
+        "id": 41,
+        "label": "Buffer#41",
+        "path": "buffers/Buffer#41.json",
+        "dataPath": "buffers/Buffer#41.bin"
+      },
+      {
+        "id": 42,
+        "label": "Buffer#42",
+        "path": "buffers/Buffer#42.json",
+        "dataPath": "buffers/Buffer#42.bin"
+      },
+      {
+        "id": 43,
+        "label": "Buffer#43",
+        "path": "buffers/Buffer#43.json",
+        "dataPath": "buffers/Buffer#43.bin"
+      },
+      {
+        "id": 44,
+        "label": "Buffer#44",
+        "path": "buffers/Buffer#44.json",
+        "dataPath": "buffers/Buffer#44.bin"
+      },
+      {
+        "id": 45,
+        "label": "Buffer#45",
+        "path": "buffers/Buffer#45.json",
+        "dataPath": "buffers/Buffer#45.bin"
+      },
+      {
+        "id": 46,
+        "label": "Buffer#46",
+        "path": "buffers/Buffer#46.json",
+        "dataPath": "buffers/Buffer#46.bin"
+      },
+      {
+        "id": 47,
+        "label": "Buffer#47",
+        "path": "buffers/Buffer#47.json",
+        "dataPath": "buffers/Buffer#47.bin"
+      },
+      {
+        "id": 48,
+        "label": "Buffer#48",
+        "path": "buffers/Buffer#48.json",
+        "dataPath": "buffers/Buffer#48.bin"
+      },
+      {
+        "id": 49,
+        "label": "Buffer#49",
+        "path": "buffers/Buffer#49.json",
+        "dataPath": "buffers/Buffer#49.bin"
+      },
+      {
+        "id": 50,
+        "label": "Buffer#50",
+        "path": "buffers/Buffer#50.json",
+        "dataPath": "buffers/Buffer#50.bin"
+      },
+      {
+        "id": 51,
+        "label": "Buffer#51",
+        "path": "buffers/Buffer#51.json",
+        "dataPath": "buffers/Buffer#51.bin"
+      },
+      {
+        "id": 52,
+        "label": "Buffer#52",
+        "path": "buffers/Buffer#52.json",
+        "dataPath": "buffers/Buffer#52.bin"
+      },
+      {
+        "id": 53,
+        "label": "Buffer#53",
+        "path": "buffers/Buffer#53.json",
+        "dataPath": "buffers/Buffer#53.bin"
+      },
+      {
+        "id": 54,
+        "label": "Buffer#54",
+        "path": "buffers/Buffer#54.json",
+        "dataPath": "buffers/Buffer#54.bin"
+      },
+      {
+        "id": 55,
+        "label": "Buffer#55",
+        "path": "buffers/Buffer#55.json",
+        "dataPath": "buffers/Buffer#55.bin"
+      },
+      {
+        "id": 56,
+        "label": "Buffer#56",
+        "path": "buffers/Buffer#56.json",
+        "dataPath": "buffers/Buffer#56.bin"
+      },
+      {
+        "id": 57,
+        "label": "Buffer#57",
+        "path": "buffers/Buffer#57.json",
+        "dataPath": "buffers/Buffer#57.bin"
+      },
+      {
+        "id": 58,
+        "label": "Buffer#58",
+        "path": "buffers/Buffer#58.json",
+        "dataPath": "buffers/Buffer#58.bin"
+      },
+      {
+        "id": 59,
+        "label": "Buffer#59",
+        "path": "buffers/Buffer#59.json",
+        "dataPath": "buffers/Buffer#59.bin"
+      },
+      {
+        "id": 60,
+        "label": "Buffer#60",
+        "path": "buffers/Buffer#60.json",
+        "dataPath": "buffers/Buffer#60.bin"
+      },
+      {
+        "id": 61,
+        "label": "Buffer#61",
+        "path": "buffers/Buffer#61.json",
+        "dataPath": "buffers/Buffer#61.bin"
+      },
+      {
+        "id": 62,
+        "label": "Buffer#62",
+        "path": "buffers/Buffer#62.json",
+        "dataPath": "buffers/Buffer#62.bin"
+      },
+      {
+        "id": 63,
+        "label": "Buffer#63",
+        "path": "buffers/Buffer#63.json",
+        "dataPath": "buffers/Buffer#63.bin"
+      },
+      {
+        "id": 64,
+        "label": "Buffer#64",
+        "path": "buffers/Buffer#64.json",
+        "dataPath": "buffers/Buffer#64.bin"
+      },
+      {
+        "id": 65,
+        "label": "Buffer#65",
+        "path": "buffers/Buffer#65.json",
+        "dataPath": "buffers/Buffer#65.bin"
+      },
+      {
+        "id": 66,
+        "label": "Buffer#66",
+        "path": "buffers/Buffer#66.json",
+        "dataPath": "buffers/Buffer#66.bin"
+      },
+      {
+        "id": 67,
+        "label": "Buffer#67",
+        "path": "buffers/Buffer#67.json",
+        "dataPath": "buffers/Buffer#67.bin"
+      },
+      {
+        "id": 68,
+        "label": "Buffer#68",
+        "path": "buffers/Buffer#68.json",
+        "dataPath": "buffers/Buffer#68.bin"
+      },
+      {
+        "id": 69,
+        "label": "Buffer#69",
+        "path": "buffers/Buffer#69.json",
+        "dataPath": "buffers/Buffer#69.bin"
+      }
+    ],
+    "textures": [
+      {
+        "id": 1,
+        "label": "Texture#1",
+        "path": "textures/Texture#1.json",
+        "dataPath": "textures/Texture#1.bin"
+      },
+      {
+        "id": 2,
+        "label": "Texture#2",
+        "path": "textures/Texture#2.json",
+        "dataPath": "textures/Texture#2.bin"
+      },
+      {
+        "id": 3,
+        "label": "Texture#3",
+        "path": "textures/Texture#3.json",
+        "dataPath": "textures/Texture#3.bin"
+      },
+      {
+        "id": 4,
+        "label": "Texture#4",
+        "path": "textures/Texture#4.json",
+        "dataPath": "textures/Texture#4.bin"
+      },
+      {
+        "id": 5,
+        "label": "Texture#5",
+        "path": "textures/Texture#5.json",
+        "dataPath": "textures/Texture#5.bin"
+      },
+      {
+        "id": 6,
+        "label": "Texture#6",
+        "path": "textures/Texture#6.json",
+        "dataPath": "textures/Texture#6.bin"
+      },
+      {
+        "id": 7,
+        "label": "Texture#7",
+        "path": "textures/Texture#7.json",
+        "dataPath": "textures/Texture#7.bin"
+      },
+      {
+        "id": 8,
+        "label": "Texture#8",
+        "path": "textures/Texture#8.json",
+        "dataPath": "textures/Texture#8.bin"
+      },
+      {
+        "id": 9,
+        "label": "Texture#9",
+        "path": "textures/Texture#9.json",
+        "dataPath": "textures/Texture#9.bin"
+      },
+      {
+        "id": 10,
+        "label": "Texture#10",
+        "path": "textures/Texture#10.json",
+        "dataPath": "textures/Texture#10.bin"
+      },
+      {
+        "id": 11,
+        "label": "Texture#11",
+        "path": "textures/Texture#11.json",
+        "dataPath": "textures/Texture#11.bin"
+      },
+      {
+        "id": 12,
+        "label": "Texture#12",
+        "path": "textures/Texture#12.json",
+        "dataPath": "textures/Texture#12.bin"
+      },
+      {
+        "id": 999999,
+        "label": "Screen",
+        "path": "textures/Screen.json",
+        "dataPath": "textures/Screen.bin"
+      }
+    ],
+    "uploads": [],
+    "debugLog": "debug_log.json",
+    "runtimeLogs": "runtime_logs.json",
+    "vaos": "vaos.json"
+  }
+}
