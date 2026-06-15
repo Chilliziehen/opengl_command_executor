@@ -157,7 +157,7 @@ BindBufferCommand::BindBufferCommand(uint32_t eventId, uint32_t target,
                                      uint32_t bufferId)
     : Command(eventId, "bindBuffer"), m_target(target), m_bufferId(bufferId) {}
 void BindBufferCommand::execute() {
-  glBindBuffer(m_target, getMappedHandle(ResourceKind::Buffer, m_bufferId));
+  glBindBuffer(m_target, getMappedHandleOr(ResourceKind::Buffer, m_bufferId));
 }
 
 BindBufferBaseCommand::BindBufferBaseCommand(uint32_t eventId, uint32_t target,
@@ -166,7 +166,7 @@ BindBufferBaseCommand::BindBufferBaseCommand(uint32_t eventId, uint32_t target,
       m_bufferId(bufferId) {}
 void BindBufferBaseCommand::execute() {
   glBindBufferBase(m_target, m_index,
-                   getMappedHandle(ResourceKind::Buffer, m_bufferId));
+                   getMappedHandleOr(ResourceKind::Buffer, m_bufferId));
 }
 
 BindBufferRangeCommand::BindBufferRangeCommand(uint32_t eventId,
@@ -177,7 +177,7 @@ BindBufferRangeCommand::BindBufferRangeCommand(uint32_t eventId,
       m_bufferId(bufferId), m_offset(offset), m_size(size) {}
 void BindBufferRangeCommand::execute() {
   glBindBufferRange(
-      m_target, m_index, getMappedHandle(ResourceKind::Buffer, m_bufferId),
+      m_target, m_index, getMappedHandleOr(ResourceKind::Buffer, m_bufferId),
       static_cast<GLintptr>(m_offset), static_cast<GLsizeiptr>(m_size));
 }
 
@@ -187,7 +187,7 @@ BindTextureCommand::BindTextureCommand(uint32_t eventId, uint32_t target,
       m_unit(unit) {}
 void BindTextureCommand::execute() {
   glActiveTexture(GL_TEXTURE0 + m_unit);
-  glBindTexture(m_target, getMappedHandle(ResourceKind::Texture, m_textureId));
+  glBindTexture(m_target, getMappedHandleOr(ResourceKind::Texture, m_textureId));
 }
 
 ActiveTextureCommand::ActiveTextureCommand(uint32_t eventId, uint32_t unit)
@@ -198,12 +198,11 @@ BindVertexArrayCommand::BindVertexArrayCommand(uint32_t eventId,
                                                uint32_t vertexArrayId)
     : Command(eventId, "bindVertexArray"), m_vertexArrayId(vertexArrayId) {}
 void BindVertexArrayCommand::execute() {
-  GLuint handle = 0;
-  if (m_vertexArrayId != 0) {
-    if (hasMappedHandle(ResourceKind::VertexArray, m_vertexArrayId))
-      handle = getMappedHandle(ResourceKind::VertexArray, m_vertexArrayId);
-  }
-  glBindVertexArray(handle);
+  // Note: id 0 is the WebGL default VAO. The replay runs in a core profile,
+  // which has no usable default VAO, so id 0 is backed by a real VAO handle
+  // (see ResourceManager::ensureDefaultVertexArray). Use the mapping for id 0
+  // too, falling back to 0 only if it somehow wasn't created.
+  glBindVertexArray(getMappedHandleOr(ResourceKind::VertexArray, m_vertexArrayId));
 }
 
 VertexAttribPointerCommand::VertexAttribPointerCommand(
@@ -216,7 +215,7 @@ VertexAttribPointerCommand::VertexAttribPointerCommand(
       m_bufferId(bufferId), m_attributeName(std::move(attributeName)) {}
 void VertexAttribPointerCommand::execute() {
   glBindBuffer(GL_ARRAY_BUFFER,
-               getMappedHandle(ResourceKind::Buffer, m_bufferId));
+               getMappedHandleOr(ResourceKind::Buffer, m_bufferId));
   glVertexAttribPointer(
       m_attributeIndex, static_cast<GLint>(m_componentCount), m_componentType,
       m_normalized ? GL_TRUE : GL_FALSE, static_cast<GLsizei>(m_stride),
@@ -293,7 +292,29 @@ CreateResourceCommand::CreateResourceCommand(uint32_t eventId,
                                              std::string name)
     : Command(eventId, std::move(name)), m_resourceKind(kind),
       m_resourceId(resourceId) {}
+// Convert the Command-local ResourceKind to the global mapper ResourceKind.
+static ::ResourceKind toMapperKind(CreateResourceCommand::ResourceKind kind) {
+  switch (kind) {
+  case CreateResourceCommand::ResourceKind::Buffer:      return ::ResourceKind::Buffer;
+  case CreateResourceCommand::ResourceKind::Texture:     return ::ResourceKind::Texture;
+  case CreateResourceCommand::ResourceKind::VertexArray: return ::ResourceKind::VertexArray;
+  case CreateResourceCommand::ResourceKind::Framebuffer: return ::ResourceKind::Framebuffer;
+  case CreateResourceCommand::ResourceKind::Shader:      return ::ResourceKind::Shader;
+  case CreateResourceCommand::ResourceKind::Program:     return ::ResourceKind::Program;
+  }
+  return ::ResourceKind::Buffer;
+}
+
 void CreateResourceCommand::execute() {
+  ::ResourceKind mappedKind = toMapperKind(m_resourceKind);
+
+  // Idempotent: the replay loop re-runs the whole command list every frame, and
+  // frame-start resources are already created during init. Reusing an existing
+  // mapping avoids leaking a fresh GL object (and clobbering the mapping) on
+  // every re-run.
+  if (hasMappedHandle(mappedKind, m_resourceId))
+    return;
+
   GLuint handle = 0;
   switch (m_resourceKind) {
   case ResourceKind::Buffer:
@@ -314,33 +335,8 @@ void CreateResourceCommand::execute() {
     handle = glCreateProgram();
     break;
   }
-  if (handle != 0) {
-    // Convert Command-local ResourceKind → UniversalDMapper ResourceKind
-    ::ResourceKind mappedKind;
-    switch (m_resourceKind) {
-    case ResourceKind::Buffer:
-      mappedKind = ::ResourceKind::Buffer;
-      break;
-    case ResourceKind::Texture:
-      mappedKind = ::ResourceKind::Texture;
-      break;
-    case ResourceKind::VertexArray:
-      mappedKind = ::ResourceKind::VertexArray;
-      break;
-    case ResourceKind::Framebuffer:
-      mappedKind = ::ResourceKind::Framebuffer;
-      break;
-    case ResourceKind::Shader:
-      mappedKind = ::ResourceKind::Shader;
-      break;
-    case ResourceKind::Program:
-      mappedKind = ::ResourceKind::Program;
-      break;
-    default:
-      return;
-    }
+  if (handle != 0)
     addMappedHandle(mappedKind, m_resourceId, handle);
-  }
 }
 
 DeleteResourceCommand::DeleteResourceCommand(uint32_t eventId,
@@ -381,7 +377,15 @@ BufferDataCommand::BufferDataCommand(uint32_t eventId, uint32_t target,
     : Command(eventId, std::move(commandName)), m_target(target),
       m_bufferId(bufferId), m_offset(offset), m_data(std::move(data)) {}
 void BufferDataCommand::execute() {
+  if (!hasMappedHandle(ResourceKind::Buffer, m_bufferId))
+    return;
   glBindBuffer(m_target, getMappedHandle(ResourceKind::Buffer, m_bufferId));
+
+  // bufferSubData updates a region of an already-sized buffer; bufferData
+  // (re)allocates. The previous code always called glBufferData and ignored the
+  // offset, corrupting sub-updates.
+  const bool isSubData = (getCommandName() == "bufferSubData");
+
   if (auto *ref = std::get_if<UploadReference>(&m_data)) {
     std::string fullPath = captureDirectory() + "/" + ref->m_uploadPath;
     std::ifstream file(fullPath, std::ios::binary | std::ios::ate);
@@ -391,26 +395,39 @@ void BufferDataCommand::execute() {
     file.seekg(0, std::ios::beg);
     std::vector<char> buffer(static_cast<size_t>(size));
     file.read(buffer.data(), size);
-    glBufferData(m_target, static_cast<GLsizeiptr>(buffer.size()),
-                 buffer.data(), GL_DYNAMIC_DRAW);
-  } else if (auto *uniform = std::get_if<UniformDataPayload>(&m_data)) {
-    glBufferData(
-        m_target,
-        static_cast<GLsizeiptr>(uniform->m_data.size() * sizeof(double)),
-        uniform->m_data.data(), GL_DYNAMIC_DRAW);
+    if (isSubData)
+      glBufferSubData(m_target, static_cast<GLintptr>(m_offset),
+                      static_cast<GLsizeiptr>(buffer.size()), buffer.data());
+    else
+      glBufferData(m_target, static_cast<GLsizeiptr>(buffer.size()),
+                   buffer.data(), GL_DYNAMIC_DRAW);
+  } else if (auto *inlineData = std::get_if<UniformDataPayload>(&m_data)) {
+    // Inline typed-array payload is stored as double; convert to float bytes.
+    std::vector<float> floats(inlineData->m_data.begin(),
+                              inlineData->m_data.end());
+    GLsizeiptr byteSize = static_cast<GLsizeiptr>(floats.size() * sizeof(float));
+    if (isSubData)
+      glBufferSubData(m_target, static_cast<GLintptr>(m_offset), byteSize,
+                      floats.data());
+    else
+      glBufferData(m_target, byteSize, floats.data(), GL_DYNAMIC_DRAW);
   }
+  // std::monostate (e.g. "UploadSkipped") => no data to upload; no-op.
 }
 
 TextureImageCommand::TextureImageCommand(
     uint32_t eventId, uint32_t target, uint32_t mipmapLevel,
     uint32_t internalFormat, uint32_t width, uint32_t height, uint32_t format,
     uint32_t pixelType, uint32_t textureId, CommandDataArgument data,
-    std::string commandName)
+    std::string commandName, uint32_t xOffset, uint32_t yOffset)
     : Command(eventId, std::move(commandName)), m_target(target),
       m_mipmapLevel(mipmapLevel), m_internalFormat(internalFormat),
       m_width(width), m_height(height), m_format(format),
-      m_pixelType(pixelType), m_textureId(textureId), m_data(std::move(data)) {}
+      m_pixelType(pixelType), m_textureId(textureId), m_xOffset(xOffset),
+      m_yOffset(yOffset), m_data(std::move(data)) {}
 void TextureImageCommand::execute() {
+  if (!hasMappedHandle(ResourceKind::Texture, m_textureId))
+    return;
   glBindTexture(m_target, getMappedHandle(ResourceKind::Texture, m_textureId));
   const void *pixelData = nullptr;
   std::vector<char> buffer;
@@ -425,10 +442,21 @@ void TextureImageCommand::execute() {
       pixelData = buffer.data();
     }
   }
-  glTexImage2D(m_target, static_cast<GLint>(m_mipmapLevel),
-               static_cast<GLint>(m_internalFormat),
-               static_cast<GLint>(m_width), static_cast<GLint>(m_height), 0,
-               m_format, m_pixelType, pixelData);
+  // texSubImage2D updates a sub-region (no internalFormat/border); texImage2D
+  // (re)defines the whole level. The previous code always used glTexImage2D and
+  // mis-read the sub-image args.
+  if (getCommandName() == "texSubImage2D") {
+    glTexSubImage2D(m_target, static_cast<GLint>(m_mipmapLevel),
+                    static_cast<GLint>(m_xOffset), static_cast<GLint>(m_yOffset),
+                    static_cast<GLsizei>(m_width),
+                    static_cast<GLsizei>(m_height), m_format, m_pixelType,
+                    pixelData);
+  } else {
+    glTexImage2D(m_target, static_cast<GLint>(m_mipmapLevel),
+                 static_cast<GLint>(m_internalFormat),
+                 static_cast<GLsizei>(m_width), static_cast<GLsizei>(m_height),
+                 0, m_format, m_pixelType, pixelData);
+  }
 }
 
 GenerateMipmapCommand::GenerateMipmapCommand(uint32_t eventId, uint32_t target,
@@ -436,6 +464,8 @@ GenerateMipmapCommand::GenerateMipmapCommand(uint32_t eventId, uint32_t target,
     : Command(eventId, "generateMipmap"), m_target(target),
       m_textureId(textureId) {}
 void GenerateMipmapCommand::execute() {
+  if (!hasMappedHandle(ResourceKind::Texture, m_textureId))
+    return;
   glBindTexture(m_target, getMappedHandle(ResourceKind::Texture, m_textureId));
   glGenerateMipmap(m_target);
 }
@@ -447,6 +477,8 @@ ShaderSourceCommand::ShaderSourceCommand(uint32_t eventId, uint32_t shaderId,
     : Command(eventId, "shaderSource"), m_shaderId(shaderId),
       m_source(std::move(source)) {}
 void ShaderSourceCommand::execute() {
+  if (!hasMappedHandle(ResourceKind::Shader, m_shaderId))
+    return;
   GLuint handle = getMappedHandle(ResourceKind::Shader, m_shaderId);
   const char *src = m_source.c_str();
   glShaderSource(handle, 1, &src, nullptr);
@@ -458,6 +490,9 @@ AttachShaderCommand::AttachShaderCommand(uint32_t eventId, uint32_t programId,
     : Command(eventId, "attachShader"), m_programId(programId),
       m_shaderId(shaderId) {}
 void AttachShaderCommand::execute() {
+  if (!hasMappedHandle(ResourceKind::Program, m_programId) ||
+      !hasMappedHandle(ResourceKind::Shader, m_shaderId))
+    return;
   glAttachShader(getMappedHandle(ResourceKind::Program, m_programId),
                  getMappedHandle(ResourceKind::Shader, m_shaderId));
 }
@@ -465,6 +500,8 @@ void AttachShaderCommand::execute() {
 LinkProgramCommand::LinkProgramCommand(uint32_t eventId, uint32_t programId)
     : Command(eventId, "linkProgram"), m_programId(programId) {}
 void LinkProgramCommand::execute() {
+  if (!hasMappedHandle(ResourceKind::Program, m_programId))
+    return;
   glLinkProgram(getMappedHandle(ResourceKind::Program, m_programId));
 }
 
@@ -480,30 +517,80 @@ UniformCommand::UniformCommand(uint32_t eventId, std::string uniformName,
       m_valueOmitted(valueOmitted), m_isSnapshot(isSnapshot),
       m_valueOmittedReason(std::move(valueOmittedReason)),
       m_data(std::move(data)) {}
+// Look up a uniform's real GL type (e.g. GL_FLOAT_MAT4) so we can pick the
+// matching glUniform* setter. Snapshots dump every uniform as a flat float
+// array under "uniform4fv", including matrices — so element count alone cannot
+// tell a vec4[] from a mat4, and calling glUniform4fv on a mat4 yields
+// GL_INVALID_OPERATION. Returns 0 if the type cannot be determined.
+static GLenum queryUniformType(GLuint program, const std::string &name) {
+  std::string baseName = name;
+  size_t bracket = baseName.find('[');
+  if (bracket != std::string::npos)
+    baseName.erase(bracket); // "u_MVP[0]" -> "u_MVP"
+  const char *namePtr = baseName.c_str();
+  GLuint index = GL_INVALID_INDEX;
+  glGetUniformIndices(program, 1, &namePtr, &index);
+  if (index == GL_INVALID_INDEX)
+    return 0;
+  GLint type = 0;
+  glGetActiveUniformsiv(program, 1, &index, GL_UNIFORM_TYPE, &type);
+  return static_cast<GLenum>(type);
+}
+
 void UniformCommand::execute() {
   if (m_valueOmitted)
     return;
-  if (hasMappedHandle(ResourceKind::Program, m_programId))
-    glUseProgram(getMappedHandle(ResourceKind::Program, m_programId));
-  if (auto *uniform = std::get_if<UniformDataPayload>(&m_data)) {
-    GLint location = glGetUniformLocation(
-        getMappedHandle(ResourceKind::Program, m_programId),
-        m_uniformName.c_str());
-    if (location < 0)
-      return;
-    size_t count = uniform->m_data.size();
-    if (count >= 4)
-      glUniform4fv(location, static_cast<GLsizei>(count / 4),
-                   reinterpret_cast<const GLfloat *>(uniform->m_data.data()));
-    else if (count >= 3)
-      glUniform3fv(location, static_cast<GLsizei>(count / 3),
-                   reinterpret_cast<const GLfloat *>(uniform->m_data.data()));
-    else if (count >= 2)
-      glUniform2fv(location, static_cast<GLsizei>(count / 2),
-                   reinterpret_cast<const GLfloat *>(uniform->m_data.data()));
-    else if (count >= 1)
-      glUniform1fv(location, static_cast<GLsizei>(count),
-                   reinterpret_cast<const GLfloat *>(uniform->m_data.data()));
+  if (!hasMappedHandle(ResourceKind::Program, m_programId))
+    return;
+  GLuint program = getMappedHandle(ResourceKind::Program, m_programId);
+  glUseProgram(program);
+
+  auto *uniform = std::get_if<UniformDataPayload>(&m_data);
+  if (!uniform || uniform->m_data.empty())
+    return;
+
+  GLint location = glGetUniformLocation(program, m_uniformName.c_str());
+  if (location < 0)
+    return;
+
+  // Captured values are stored as double; convert to float for the GL call.
+  std::vector<GLfloat> values(uniform->m_data.begin(), uniform->m_data.end());
+  const GLfloat *data = values.data();
+  GLsizei count = static_cast<GLsizei>(values.size());
+
+  switch (queryUniformType(program, m_uniformName)) {
+  case GL_FLOAT_MAT2:
+    glUniformMatrix2fv(location, count / 4, GL_FALSE, data);
+    break;
+  case GL_FLOAT_MAT3:
+    glUniformMatrix3fv(location, count / 9, GL_FALSE, data);
+    break;
+  case GL_FLOAT_MAT4:
+    glUniformMatrix4fv(location, count / 16, GL_FALSE, data);
+    break;
+  case GL_FLOAT_VEC2:
+    glUniform2fv(location, count / 2, data);
+    break;
+  case GL_FLOAT_VEC3:
+    glUniform3fv(location, count / 3, data);
+    break;
+  case GL_FLOAT_VEC4:
+    glUniform4fv(location, count / 4, data);
+    break;
+  case GL_FLOAT:
+    glUniform1fv(location, count, data);
+    break;
+  default:
+    // Type introspection failed — fall back to a component-count guess.
+    if (count % 4 == 0)
+      glUniform4fv(location, count / 4, data);
+    else if (count % 3 == 0)
+      glUniform3fv(location, count / 3, data);
+    else if (count % 2 == 0)
+      glUniform2fv(location, count / 2, data);
+    else
+      glUniform1fv(location, count, data);
+    break;
   }
 }
 
@@ -527,9 +614,13 @@ void UniformMatrixCommand::execute() {
         m_uniformName.c_str());
     if (location < 0)
       return;
-    glUniformMatrix4fv(
-        location, 1, m_transpose ? GL_TRUE : GL_FALSE,
-        reinterpret_cast<const GLfloat *>(uniform->m_data.data()));
+    if (uniform->m_data.size() < 16)
+      return;
+    // Captured values are stored as double; convert to float for the GL call.
+    std::vector<GLfloat> values(uniform->m_data.begin(), uniform->m_data.end());
+    glUniformMatrix4fv(location,
+                       static_cast<GLsizei>(values.size() / 16),
+                       m_transpose ? GL_TRUE : GL_FALSE, values.data());
   }
 }
 
@@ -544,11 +635,11 @@ UniformSamplerCommand::UniformSamplerCommand(uint32_t eventId,
 void UniformSamplerCommand::execute() {
   if (m_valueOmitted)
     return;
-  if (hasMappedHandle(ResourceKind::Program, m_programId))
-    glUseProgram(getMappedHandle(ResourceKind::Program, m_programId));
-  GLint location =
-      glGetUniformLocation(getMappedHandle(ResourceKind::Program, m_programId),
-                           m_uniformName.c_str());
+  if (!hasMappedHandle(ResourceKind::Program, m_programId))
+    return;
+  GLuint program = getMappedHandle(ResourceKind::Program, m_programId);
+  glUseProgram(program);
+  GLint location = glGetUniformLocation(program, m_uniformName.c_str());
   if (location >= 0)
     glUniform1i(location, static_cast<GLint>(m_textureUnit));
 }
@@ -562,10 +653,11 @@ FramebufferTexture2DCommand::FramebufferTexture2DCommand(
       m_attachment(attachment), m_textureTarget(textureTarget),
       m_textureId(textureId), m_mipmapLevel(mipmapLevel) {}
 void FramebufferTexture2DCommand::execute() {
-  glBindFramebuffer(GL_FRAMEBUFFER, getMappedHandle(ResourceKind::Framebuffer,
-                                                    m_framebufferId));
+  glBindFramebuffer(GL_FRAMEBUFFER,
+                    getMappedHandleOr(ResourceKind::Framebuffer,
+                                      m_framebufferId));
   glFramebufferTexture2D(GL_FRAMEBUFFER, m_attachment, m_textureTarget,
-                         getMappedHandle(ResourceKind::Texture, m_textureId),
+                         getMappedHandleOr(ResourceKind::Texture, m_textureId),
                          static_cast<GLint>(m_mipmapLevel));
 }
 

@@ -48,6 +48,13 @@ public:
         return m_mappingValToKey.find(val) != m_mappingValToKey.end();
     }
 
+    /// Drop every mapping (does NOT free the underlying GL objects — callers are
+    /// responsible for deleting those first).
+    void clear() {
+        m_mappingKeyToVal.clear();
+        m_mappingValToKey.clear();
+    }
+
 private:
     UniversalDMapper() = default;
     std::unordered_map<TKey, TVal> m_mappingKeyToVal;
@@ -86,5 +93,17 @@ inline void     addMappedHandle(ResourceKind kind, uint32_t captureId, uint32_t 
 inline uint32_t getMappedHandle(ResourceKind kind, uint32_t captureId)                     { return ResourceMapper::instance().getVal(encodeResourceKey(kind, captureId)); }
 inline bool     hasMappedHandle(ResourceKind kind, uint32_t captureId)                     { return ResourceMapper::instance().containsKey(encodeResourceKey(kind, captureId)); }
 inline void     removeMappedHandle(ResourceKind kind, uint32_t captureId)                  { ResourceMapper::instance().removeMapping(encodeResourceKey(kind, captureId)); }
+
+/// Drop ALL capture-id → GL-handle mappings. Use when tearing down / reloading
+/// a capture. Delete the GL objects (see ResourceAllocator::deleteAllResources)
+/// before calling this, otherwise the handles leak.
+inline void clearAllMappedHandles() { ResourceMapper::instance().clear(); }
+
+/// Safe lookup: returns `fallback` (default 0) instead of throwing when the
+/// capture id has no GL handle yet. Use this in command replay so a single
+/// missing/dangling resource id can't take down the whole frame.
+inline uint32_t getMappedHandleOr(ResourceKind kind, uint32_t captureId, uint32_t fallback = 0) {
+    return hasMappedHandle(kind, captureId) ? getMappedHandle(kind, captureId) : fallback;
+}
 
 #endif

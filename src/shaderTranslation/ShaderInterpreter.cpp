@@ -53,10 +53,11 @@ void ShaderInterpreter::addUboLayoutQualifier(std::string& source) {
     //
     // Simpler: match "uniform Identifier {" and verify it's not preceded by "layout"
     // by checking if the character before "uniform" is not 't' from "layout".
-    // Pattern: uniform <Name> { at start of line (after optional ws)
+    // Pattern: uniform <Name> {  (line context is checked manually below, so we
+    // don't rely on std::regex::multiline, which some libc++ versions lack).
     static const std::regex uboRegex(
-        R"(^([ \t]*)uniform\s+(\w+)\s*\{)",
-        std::regex::ECMAScript | std::regex::multiline
+        R"(\buniform\s+(\w+)\s*\{)",
+        std::regex::ECMAScript
     );
     // Check each match — only replace if "layout" does not appear on the same line
     std::string result;
@@ -76,7 +77,7 @@ void ShaderInterpreter::addUboLayoutQualifier(std::string& source) {
 
         result += source.substr(lastPos, matchPos - lastPos);
         if (!hasLayout) {
-            result += match[1].str() + "layout(std140) uniform " + match[2].str() + " {";
+            result += "layout(std140) uniform " + match[1].str() + " {";
         } else {
             result += match[0].str();
         }
@@ -92,10 +93,11 @@ void ShaderInterpreter::addFragmentOutputLayout(std::string& source) {
     // that is NOT preceded by "layout(location"
     // Fragment shader outputs in GLSL 330 core need explicit layout(location=N)
     // We handle the simple case: standalone "out" at global scope without layout.
-    // Pattern: line start, optional ws, "out", ws, type, ws, name, ws, ";"
+    // Pattern: "out", ws, type, ws, name, ws, ";"  (line context checked manually
+    // below, so we avoid std::regex::multiline for libc++ compatibility).
     static const std::regex outputRegex(
-        R"(^([ \t]*)out\s+(\w+)\s+(\w+)\s*;)",
-        std::regex::ECMAScript | std::regex::multiline
+        R"(\bout\s+(\w+)\s+(\w+)\s*;)",
+        std::regex::ECMAScript
     );
     std::string result;
     result.reserve(source.size() * 1.1);
@@ -112,8 +114,8 @@ void ShaderInterpreter::addFragmentOutputLayout(std::string& source) {
 
         result += source.substr(lastPos, matchPos - lastPos);
         if (!hasLayout) {
-            result += match[1].str() + "layout(location = 0) out "
-                   + match[2].str() + " " + match[3].str() + ";";
+            result += "layout(location = 0) out "
+                   + match[1].str() + " " + match[2].str() + ";";
         } else {
             result += match[0].str();
         }

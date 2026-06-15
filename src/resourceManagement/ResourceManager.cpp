@@ -8,9 +8,18 @@
 #include "drawResources/State.h"
 #include "shaderTranslation/ShaderInterpreter.h"
 #include <glad/gl.h>
+#include <cstdio>
 #include <fstream>
 #include <stdexcept>
+#include <unordered_set>
 #include <vector>
+
+// Quiet GL-error probe: prints (only when there is an error) which init phase
+// left a pending GL error, then drains the queue. Helps localize init issues.
+static void dbgGlPhase(const char* phase) {
+    for (GLenum e = glGetError(); e != GL_NO_ERROR; e = glGetError())
+        std::fprintf(stderr, "  [GL ERROR] init phase '%s' -> 0x%x\n", phase, e);
+}
 
 static std::string joinPathLocal(const std::string& directory, const std::string& relative) {
     if (relative.empty()) return "";
@@ -44,11 +53,21 @@ bool ResourceManager::uploadBufferData(const CaptureBuffer& metadata,
         return false;
     }
     GLuint handle = getMappedHandle(ResourceKind::Buffer, metadata.m_bufferId);
-    glBindBuffer(metadata.m_target, handle);
+    // Upload through GL_COPY_WRITE_BUFFER (a neutral binding point) rather than
+    // the buffer's real target. Binding an EBO to GL_ELEMENT_ARRAY_BUFFER here
+    // would mutate the currently bound VAO's element binding; the actual VBO/EBO
+    // bindings are set later by restoreVertexArrays/restoreState.
+    const GLenum uploadTarget = GL_COPY_WRITE_BUFFER;
+    glBindBuffer(uploadTarget, handle);
+
+    // Some buffers have no captured usage hint (0), which is not a valid enum
+    // for glBufferData. Default to GL_STATIC_DRAW.
+    GLenum usage = metadata.m_usageHint ? metadata.m_usageHint
+                                        : static_cast<GLenum>(GL_STATIC_DRAW);
 
     if (metadata.m_binaryDataPath.empty()) {
-        glBufferData(metadata.m_target, static_cast<GLsizeiptr>(metadata.m_byteLength),
-                     nullptr, metadata.m_usageHint);
+        glBufferData(uploadTarget, static_cast<GLsizeiptr>(metadata.m_byteLength),
+                     nullptr, usage);
         return true;
     }
 
@@ -56,13 +75,29 @@ bool ResourceManager::uploadBufferData(const CaptureBuffer& metadata,
     auto data = readBinaryFileLocal(fullPath, outError);
     if (data.empty() && !outError.empty()) return false;
 
-    glBufferData(metadata.m_target, static_cast<GLsizeiptr>(data.size()),
-                 data.data(), metadata.m_usageHint);
+    glBufferData(uploadTarget, static_cast<GLsizeiptr>(data.size()),
+                 data.data(), usage);
     return true;
+}
+
+// Derive a client format/type for a known sized internal format when the
+// capture didn't record them (e.g. depth/stencil render targets). Leaves the
+// values untouched if it can't.
+static void deriveFormatType(uint32_t internalFormat, GLenum& format, GLenum& type) {
+    if (format != 0 && type != 0) return;
+    switch (internalFormat) {
+    case 0x88F0: format = 0x84F9; type = 0x84FA; break; // DEPTH24_STENCIL8  -> DEPTH_STENCIL, UNSIGNED_INT_24_8
+    case 0x8CAD: format = 0x84F9; type = 0x8DAD; break; // DEPTH32F_STENCIL8 -> DEPTH_STENCIL, FLOAT_32_UNSIGNED_INT_24_8_REV
+    case 0x81A5: format = 0x1902; type = 0x1405; break; // DEPTH_COMPONENT16 -> DEPTH_COMPONENT, UNSIGNED_INT
+    case 0x81A6: format = 0x1902; type = 0x1405; break; // DEPTH_COMPONENT24 -> DEPTH_COMPONENT, UNSIGNED_INT
+    case 0x8CAC: format = 0x1902; type = 0x1406; break; // DEPTH_COMPONENT32F-> DEPTH_COMPONENT, FLOAT
+    default: break;
+    }
 }
 
 bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
                                          const std::string& captureDirectoryPath,
+                                         bool isRenderTarget,
                                          std::string& outError) {
     if (!hasMappedHandle(ResourceKind::Texture, metadata.m_textureId)) {
         outError = "Texture " + std::to_string(metadata.m_textureId) + " not allocated";
@@ -71,6 +106,36 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
     GLuint handle = getMappedHandle(ResourceKind::Texture, metadata.m_textureId);
     glBindTexture(metadata.m_target, handle);
 
+    GLenum format = metadata.m_format;
+    GLenum type   = metadata.m_pixelType;
+
+    if (isRenderTarget) {
+        // Render targets (FBO attachments) must be defined at FULL resolution so
+        // the frame's render passes fill them correctly — the captured baseline
+        // is downsampled and would clip rendering (e.g. a 4096 shadow map
+        // allocated at 1024). Allocate with null data; the frame renders into it.
+        deriveFormatType(metadata.m_internalFormat, format, type);
+        if (format == 0 || type == 0) return true; // can't define; leave undefined
+        GLsizei w = static_cast<GLsizei>(metadata.m_width);
+        GLsizei h = static_cast<GLsizei>(metadata.m_height);
+        if (metadata.m_target == static_cast<uint32_t>(GL_TEXTURE_CUBE_MAP)) {
+            for (int face = 0; face < 6; ++face)
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
+                             static_cast<GLint>(metadata.m_internalFormat),
+                             w, h, 0, format, type, nullptr);
+        } else {
+            glTexImage2D(metadata.m_target, 0,
+                         static_cast<GLint>(metadata.m_internalFormat),
+                         w, h, 0, format, type, nullptr);
+        }
+        for (const auto& [key, val] : metadata.m_parameters) {
+            GLenum parameterName = static_cast<GLenum>(std::stoul(key));
+            glTexParameteri(metadata.m_target, parameterName, val);
+        }
+        return true;
+    }
+
+    // ---- sampled texture: upload the captured (possibly downsampled) image ----
     const void* pixelData = nullptr;
     std::vector<char> data;
     if (!metadata.m_textureBinaryPath.empty()) {
@@ -83,10 +148,27 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
     // capturedWidth/Height may differ from width/height (downsampled 1/4)
     GLsizei uploadWidth  = pixelData ? static_cast<GLsizei>(metadata.m_capturedWidth)  : static_cast<GLsizei>(metadata.m_width);
     GLsizei uploadHeight = pixelData ? static_cast<GLsizei>(metadata.m_capturedHeight) : static_cast<GLsizei>(metadata.m_height);
-    glTexImage2D(metadata.m_target, 0,
-                 static_cast<GLint>(metadata.m_internalFormat),
-                 uploadWidth, uploadHeight, 0,
-                 metadata.m_format, metadata.m_pixelType, pixelData);
+
+    // Skip image definition when client format/type are missing (e.g. some
+    // depth/stencil cube maps) — glTexImage2D would raise GL_INVALID_ENUM.
+    if (format != 0 && type != 0) {
+        if (metadata.m_target == static_cast<uint32_t>(GL_TEXTURE_CUBE_MAP)) {
+            // A cube map must be defined per-face; glTexImage2D(GL_TEXTURE_CUBE_MAP,…)
+            // is illegal. We only have one captured blob, so use it for all six
+            // faces (best effort — enough to make the cube map complete).
+            for (int face = 0; face < 6; ++face) {
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
+                             static_cast<GLint>(metadata.m_internalFormat),
+                             uploadWidth, uploadHeight, 0,
+                             format, type, pixelData);
+            }
+        } else {
+            glTexImage2D(metadata.m_target, 0,
+                         static_cast<GLint>(metadata.m_internalFormat),
+                         uploadWidth, uploadHeight, 0,
+                         format, type, pixelData);
+        }
+    }
 
     for (const auto& [key, val] : metadata.m_parameters) {
         GLenum parameterName = static_cast<GLenum>(std::stoul(key));
@@ -132,12 +214,23 @@ bool ResourceManager::compileShader(const CaptureShader& metadata,
 }
 
 bool ResourceManager::linkProgram(const CaptureProgram& metadata,
+                                   const std::unordered_map<std::string, uint32_t>& attributeBindings,
                                    std::string& outError) {
     GLuint programHandle = getMappedHandle(ResourceKind::Program, metadata.m_programId);
 
     for (uint32_t captureShaderId : metadata.m_attachedShaderIds) {
         GLuint shaderHandle = getMappedHandle(ResourceKind::Shader, captureShaderId);
         glAttachShader(programHandle, shaderHandle);
+    }
+
+    // Force attribute locations to match the capture's attribute indices. The
+    // translated GLSL has no explicit layout(location=) on vertex inputs, so
+    // the desktop linker would otherwise assign arbitrary locations that don't
+    // match the VAO / vertexAttribPointer indices. Names not present in this
+    // program are silently ignored by GL.
+    for (const auto& [attributeName, attributeIndex] : attributeBindings) {
+        if (!attributeName.empty())
+            glBindAttribLocation(programHandle, attributeIndex, attributeName.c_str());
     }
 
     glLinkProgram(programHandle);
@@ -155,8 +248,9 @@ bool ResourceManager::linkProgram(const CaptureProgram& metadata,
     return true;
 }
 
-bool ResourceManager::restoreState(const CaptureState& state,
+bool ResourceManager::restoreState(const FrameCapture& capture,
                                     std::string& /*outError*/) {
+    const CaptureState& state = capture.m_state;
     // ---- program ----
     if (hasMappedHandle(ResourceKind::Program, state.m_currentProgramId))
         glUseProgram(getMappedHandle(ResourceKind::Program, state.m_currentProgramId));
@@ -175,10 +269,16 @@ bool ResourceManager::restoreState(const CaptureState& state,
     for (const auto& [unitString, textureCaptureId] : state.m_currentTextureBindings) {
         int unit = std::stoi(unitString);
         glActiveTexture(GL_TEXTURE0 + static_cast<GLenum>(unit));
-        if (textureCaptureId != 0 && hasMappedHandle(ResourceKind::Texture, textureCaptureId))
-            glBindTexture(GL_TEXTURE_2D, getMappedHandle(ResourceKind::Texture, textureCaptureId));
-        else if (textureCaptureId == 0)
+        if (textureCaptureId != 0 && hasMappedHandle(ResourceKind::Texture, textureCaptureId)) {
+            // Bind to the texture's real target — binding a cube map (or any
+            // non-2D texture) to GL_TEXTURE_2D raises GL_INVALID_OPERATION.
+            GLenum target = GL_TEXTURE_2D;
+            if (const TextureWrapper* tex = capture.findTexture(textureCaptureId))
+                target = static_cast<GLenum>(tex->m_target);
+            glBindTexture(target, getMappedHandle(ResourceKind::Texture, textureCaptureId));
+        } else if (textureCaptureId == 0) {
             glBindTexture(GL_TEXTURE_2D, 0);
+        }
     }
 
     for (const auto& [programIdString, samplerMap] : state.m_currentSamplerBindings) {
@@ -258,20 +358,76 @@ bool ResourceManager::restoreState(const CaptureState& state,
     return true;
 }
 
+// Core profile has no usable default VAO, but WebGL captures freely use VAO id
+// 0. Make sure id 0 is backed by a real VAO handle so binds/draws against the
+// "default" VAO work. No-op if the capture already created a VAO for id 0.
+static void ensureDefaultVertexArray() {
+    if (!hasMappedHandle(ResourceKind::VertexArray, 0)) {
+        GLuint handle = 0;
+        glGenVertexArrays(1, &handle);
+        addMappedHandle(ResourceKind::VertexArray, 0, handle);
+    }
+    // Keep a VAO bound for the whole init: in core profile, element-array-buffer
+    // binds (e.g. in restoreState) are illegal with no VAO bound.
+    glBindVertexArray(getMappedHandle(ResourceKind::VertexArray, 0));
+}
+
+// Build a global attribute-name -> location-index map from every source the
+// capture provides (VAO attribs, the state snapshot, and in-frame
+// vertexAttribPointer commands). Used to pin attribute locations before linking.
+static std::unordered_map<std::string, uint32_t>
+collectAttributeBindings(const FrameCapture& capture) {
+    std::unordered_map<std::string, uint32_t> bindings;
+    auto add = [&](const std::string& name, uint32_t index) {
+        if (!name.empty()) bindings[name] = index;
+    };
+    for (const auto& vao : capture.m_vertexArrays)
+        for (const auto& [indexStr, attrib] : vao.m_vertexAttributes)
+            add(attrib.m_attributeName, static_cast<uint32_t>(std::stoul(indexStr)));
+    for (const auto& [indexStr, attrib] : capture.m_state.m_vertexAttributes)
+        add(attrib.m_attributeName, static_cast<uint32_t>(std::stoul(indexStr)));
+    for (const auto& cmd : capture.m_commands) {
+        if (auto* vap = dynamic_cast<VertexAttribPointerCommand*>(cmd.get()))
+            add(vap->attributeName(), vap->attributeIndex());
+    }
+    return bindings;
+}
+
 bool ResourceManager::uploadAllResources(const FrameCapture& capture,
                                           const std::string& captureDirectoryPath,
                                           std::string& outError) {
+    ensureDefaultVertexArray();
+    auto attributeBindings = collectAttributeBindings(capture);
+    dbgGlPhase("ensureDefaultVertexArray");
+
+    // Textures used as FBO attachments are render targets: they must be defined
+    // at full resolution (not the downsampled baseline) so the frame's passes
+    // render into them correctly.
+    std::unordered_set<uint32_t> renderTargets;
+    for (const auto& fb : capture.m_framebuffers)
+        for (const auto& att : fb.m_attachments)
+            if (att.m_textureId != 0) renderTargets.insert(att.m_textureId);
+
     for (const auto& b : capture.m_buffers)
         if (!uploadBufferData(b, captureDirectoryPath, outError)) return false;
-    for (const auto& t : capture.m_textures)
-        if (!uploadTextureData(t, captureDirectoryPath, outError)) return false;
+    dbgGlPhase("buffers");
+    for (const auto& t : capture.m_textures) {
+        bool isRT = renderTargets.count(t.m_textureId) != 0;
+        if (!uploadTextureData(t, captureDirectoryPath, isRT, outError)) return false;
+    }
+    dbgGlPhase("textures");
     for (const auto& s : capture.m_shaders)
         if (!compileShader(s, outError)) return false;
+    dbgGlPhase("shaders");
     for (const auto& p : capture.m_programs)
-        if (!linkProgram(p, outError)) return false;
-    if (!restoreState(capture.m_state, outError)) return false;
+        if (!linkProgram(p, attributeBindings, outError)) return false;
+    dbgGlPhase("programs");
+    if (!restoreState(capture, outError)) return false;
+    dbgGlPhase("restoreState");
     if (!restoreFramebuffers(capture, outError)) return false;
+    dbgGlPhase("restoreFramebuffers");
     if (!restoreVertexArrays(capture, outError)) return false;
+    dbgGlPhase("restoreVertexArrays");
     return true;
 }
 
@@ -379,36 +535,36 @@ bool ResourceManager::restoreVertexArrays(const FrameCapture& capture,
         }
     }
 
-    // ---- state snapshot's global vertex attributes (on VAO #0 or default VAO) ----
+    // ---- state snapshot's global vertex attributes (on the current VAO) ----
+    // id 0 is backed by the real default VAO (see ensureDefaultVertexArray), so
+    // we always have a valid VAO to configure in core profile.
     const auto& state = capture.m_state;
-    if (!state.m_vertexAttributes.empty()) {
-        bool hasDefaultVertexArray = (state.m_currentVertexArrayId == 0)
-            || (state.m_currentVertexArrayId != 0 && hasMappedHandle(ResourceKind::VertexArray, state.m_currentVertexArrayId));
-        if (hasDefaultVertexArray) {
-            GLuint stateVaoHandle = (state.m_currentVertexArrayId == 0)
-                ? 0
-                : getMappedHandle(ResourceKind::VertexArray, state.m_currentVertexArrayId);
-            glBindVertexArray(stateVaoHandle);
+    if (!state.m_vertexAttributes.empty() &&
+        hasMappedHandle(ResourceKind::VertexArray, state.m_currentVertexArrayId)) {
+        GLuint stateVaoHandle =
+            getMappedHandle(ResourceKind::VertexArray, state.m_currentVertexArrayId);
+        glBindVertexArray(stateVaoHandle);
 
-            for (const auto& [indexString, attribute] : state.m_vertexAttributes) {
-                uint32_t attrIndex = static_cast<uint32_t>(std::stoul(indexString));
-                if (attribute.m_bufferId != 0 && hasMappedHandle(ResourceKind::Buffer, attribute.m_bufferId))
-                    glBindBuffer(GL_ARRAY_BUFFER, getMappedHandle(ResourceKind::Buffer, attribute.m_bufferId));
-                glVertexAttribPointer(attrIndex,
-                                      static_cast<GLint>(attribute.m_componentCount),
-                                      attribute.m_componentType,
-                                      attribute.m_normalized ? GL_TRUE : GL_FALSE,
-                                      static_cast<GLsizei>(attribute.m_stride),
-                                      reinterpret_cast<const void*>(static_cast<uintptr_t>(attribute.m_offset)));
-                if (attribute.m_enabled) glEnableVertexAttribArray(attrIndex);
-                else                     glDisableVertexAttribArray(attrIndex);
-            }
+        for (const auto& [indexString, attribute] : state.m_vertexAttributes) {
+            uint32_t attrIndex = static_cast<uint32_t>(std::stoul(indexString));
+            if (attribute.m_bufferId != 0 && hasMappedHandle(ResourceKind::Buffer, attribute.m_bufferId))
+                glBindBuffer(GL_ARRAY_BUFFER, getMappedHandle(ResourceKind::Buffer, attribute.m_bufferId));
+            glVertexAttribPointer(attrIndex,
+                                  static_cast<GLint>(attribute.m_componentCount),
+                                  attribute.m_componentType,
+                                  attribute.m_normalized ? GL_TRUE : GL_FALSE,
+                                  static_cast<GLsizei>(attribute.m_stride),
+                                  reinterpret_cast<const void*>(static_cast<uintptr_t>(attribute.m_offset)));
+            if (attribute.m_enabled) glEnableVertexAttribArray(attrIndex);
+            else                     glDisableVertexAttribArray(attrIndex);
         }
     }
 
-    // Unbind everything to leave a clean state for command execution
-    glBindVertexArray(0);
+    // Leave the frame-start VAO bound (id 0 = real default VAO) so command
+    // replay begins from the captured binding. Do NOT bind raw 0 — core profile
+    // has no default VAO and subsequent attrib/draw calls would fail.
+    glBindVertexArray(getMappedHandleOr(ResourceKind::VertexArray,
+                                        state.m_currentVertexArrayId));
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     return true;
 }

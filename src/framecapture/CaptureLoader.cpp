@@ -450,13 +450,15 @@ static const std::unordered_map<std::string, CommandParserFunc>& getCommandParse
                 "texImage2D");
         }},
         {"texSubImage2D", [](const Json& j) -> CommandPtr {
+            // args: [target, level, xoffset, yoffset, width, height, format, type, data]
             const auto& a = j["args"];
             return std::make_unique<TextureImageCommand>(j.value("eventId", 0U),
-                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
-                a[3].get<uint32_t>(), a[4].get<uint32_t>(), a[6].get<uint32_t>(),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), /*internalFormat*/0U,
+                a[4].get<uint32_t>(), a[5].get<uint32_t>(), a[6].get<uint32_t>(),
                 a[7].get<uint32_t>(), j.value("textureId", 0U),
                 (a.is_array() && a.size() >= 9) ? parseCommandDataArg(a[8]) : CommandDataArgument{},
-                "texSubImage2D");
+                "texSubImage2D",
+                a[2].get<uint32_t>(), a[3].get<uint32_t>());
         }},
         {"generateMipmap", [](const Json& j) -> CommandPtr {
             const auto& a = j["args"];
@@ -727,6 +729,13 @@ bool CaptureLoader::parseState(const std::string&     directoryPath,
     if (j.contains("currentTextures") && j["currentTextures"].is_object())
         for (auto& [k, v] : j["currentTextures"].items())
             outState.m_currentTextureBindings[k] = v.get<uint32_t>();
+
+    // currentSamplers: { programId: { uniformName: textureUnit } }
+    if (j.contains("currentSamplers") && j["currentSamplers"].is_object())
+        for (auto& [programId, samplerMap] : j["currentSamplers"].items())
+            if (samplerMap.is_object())
+                for (auto& [uniformName, unit] : samplerMap.items())
+                    outState.m_currentSamplerBindings[programId][uniformName] = unit.get<uint32_t>();
 
     if (j.contains("attribs") && j["attribs"].is_object())
         for (auto& [k, v] : j["attribs"].items())

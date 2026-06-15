@@ -34,6 +34,11 @@ public:
 
     static bool allocateAllResources(const FrameCapture& capture, std::string& outError);
 
+    /// Delete every GL object created for this capture and clear all id→handle
+    /// mappings (including the synthetic default VAO id 0). Call on teardown or
+    /// before loading a different capture so nothing leaks / goes stale.
+    static void deleteAllResources(const FrameCapture& capture);
+
 private:
     ResourceAllocator() = delete;
 };

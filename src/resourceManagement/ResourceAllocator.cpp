@@ -106,3 +106,25 @@ bool ResourceAllocator::allocateAllResources(const FrameCapture& capture, std::s
         allocateFramebuffer(framebuffer);
     return true;
 }
+
+void ResourceAllocator::deleteAllResources(const FrameCapture& capture) {
+    for (const auto& buffer : capture.m_buffers)
+        deleteBuffer(buffer.m_bufferId);
+    for (const auto& texture : capture.m_textures)
+        deleteTexture(texture.m_textureId);
+    for (const auto& shader : capture.m_shaders)
+        deleteShader(shader.m_shaderId);
+    for (const auto& program : capture.m_programs)
+        deleteProgram(program.m_programId);
+    for (const auto& vertexArray : capture.m_vertexArrays)
+        deleteVertexArray(vertexArray.m_vertexArrayId);
+    for (const auto& framebuffer : capture.m_framebuffers)
+        deleteFramebuffer(framebuffer.m_framebufferId);
+
+    // The synthetic default VAO (id 0) is created lazily during init and isn't
+    // in any capture list, so delete it explicitly.
+    deleteVertexArray(0);
+
+    // Drop any remaining mappings (e.g. resources created by in-frame commands).
+    clearAllMappedHandles();
+}

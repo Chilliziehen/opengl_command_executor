@@ -263,6 +263,9 @@ public:
                                uint32_t componentType, bool normalized, uint32_t stride,
                                uint32_t offset, uint32_t bufferId, std::string attributeName);
     void execute() override;
+
+    uint32_t           attributeIndex() const { return m_attributeIndex; }
+    const std::string& attributeName() const  { return m_attributeName; }
 private:
     uint32_t    m_attributeIndex, m_componentCount, m_componentType;
     bool        m_normalized;
@@ -344,11 +347,13 @@ public:
     TextureImageCommand(uint32_t eventId, uint32_t target, uint32_t mipmapLevel,
                         uint32_t internalFormat, uint32_t width, uint32_t height,
                         uint32_t format, uint32_t pixelType, uint32_t textureId,
-                        CommandDataArgument data, std::string commandName);
+                        CommandDataArgument data, std::string commandName,
+                        uint32_t xOffset = 0, uint32_t yOffset = 0);
     void execute() override;
 private:
     uint32_t m_target, m_mipmapLevel, m_internalFormat, m_width, m_height;
     uint32_t m_format, m_pixelType, m_textureId;
+    uint32_t m_xOffset, m_yOffset;
     CommandDataArgument m_data;
 };
 

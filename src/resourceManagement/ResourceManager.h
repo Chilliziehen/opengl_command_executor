@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 struct CaptureBuffer;
 struct TextureWrapper;
@@ -22,14 +23,18 @@ public:
                                  std::string& outError);
     static bool uploadTextureData(const TextureWrapper& metadata,
                                   const std::string& captureDirectoryPath,
+                                  bool isRenderTarget,
                                   std::string& outError);
     static bool compileShader(const CaptureShader& metadata,
                               std::string& outError);
     static bool linkProgram(const CaptureProgram& metadata,
+                            const std::unordered_map<std::string, uint32_t>& attributeBindings,
                             std::string& outError);
 
     /// Restore GL state from the frame-start snapshot (viewport, blend, depth, etc.)
-    static bool restoreState(const CaptureState& state,
+    /// Takes the whole capture so texture bindings can use each texture's real
+    /// target (e.g. cube maps must not be bound to GL_TEXTURE_2D).
+    static bool restoreState(const FrameCapture& capture,
                              std::string& outError);
 
     /// Bind every VAO, set up its vertex attributes, and bind its EBO.
