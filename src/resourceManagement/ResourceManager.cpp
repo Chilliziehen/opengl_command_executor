@@ -8,9 +8,12 @@
 #include "drawResources/State.h"
 #include "shaderTranslation/ShaderInterpreter.h"
 #include <glad/gl.h>
+#include <algorithm>
 #include <cstdio>
 #include <fstream>
+#include <set>
 #include <stdexcept>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -245,7 +248,45 @@ bool ResourceManager::linkProgram(const CaptureProgram& metadata,
                  + " link failed: " + std::string(log.data());
         return false;
     }
+
+    // Assign each uniform block's binding point = its block index. The capture's
+    // glUniformBlockBinding() calls are init-time and aren't in the frame stream,
+    // so without this every block defaults to binding 0 (e.g. UnityPerDraw and
+    // UnityPerMaterial would both read the same UBO and geometry breaks). The
+    // capture's bindBufferBase/Range use binding points in block-declaration
+    // order, which matches the block index here.
+    GLint blockCount = 0;
+    glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_BLOCKS, &blockCount);
+    for (GLint blockIndex = 0; blockIndex < blockCount; ++blockIndex)
+        glUniformBlockBinding(programHandle, static_cast<GLuint>(blockIndex),
+                              static_cast<GLuint>(blockIndex));
+
     return true;
+}
+
+static bool isDepthInternalFormat(uint32_t fmt) {
+    switch (fmt) {
+    case 0x1902: // DEPTH_COMPONENT
+    case 0x81A5: // DEPTH_COMPONENT16
+    case 0x81A6: // DEPTH_COMPONENT24
+    case 0x8CAC: // DEPTH_COMPONENT32F
+    case 0x88F0: // DEPTH24_STENCIL8
+    case 0x8CAD: // DEPTH32F_STENCIL8
+        return true;
+    default:
+        return false;
+    }
+}
+
+void ResourceManager::registerDepthTextures(const FrameCapture& capture) {
+    // Tell the command layer which GL texture handles are depth textures, so the
+    // per-draw sampler fixup can route sampler2DShadow to the right unit.
+    Command::clearDepthTextureRegistry();
+    for (const auto& t : capture.m_textures) {
+        if (isDepthInternalFormat(t.m_internalFormat) &&
+            hasMappedHandle(ResourceKind::Texture, t.m_textureId))
+            Command::registerDepthTexture(getMappedHandle(ResourceKind::Texture, t.m_textureId));
+    }
 }
 
 bool ResourceManager::restoreState(const FrameCapture& capture,
@@ -349,6 +390,24 @@ bool ResourceManager::restoreState(const FrameCapture& capture,
         else         glDisable(capEnum);
     }
 
+    // Reconstruct missing depth-test state. WebGL captures sometimes omit the
+    // init-time gl.enable(DEPTH_TEST) from the snapshot, leaving capabilities
+    // empty. If the frame clearly does depth work (a framebuffer with a depth or
+    // depth/stencil attachment) but GL_DEPTH_TEST wasn't recorded, enable it —
+    // otherwise shadow maps never get depth written and opaque geometry gets
+    // overwritten by later passes (e.g. the skybox covers the scene).
+    constexpr char kDepthTestKey[] = "2929"; // GL_DEPTH_TEST
+    if (state.m_capabilities.find(kDepthTestKey) == state.m_capabilities.end()) {
+        bool hasDepthAttachment = false;
+        for (const auto& fb : capture.m_framebuffers)
+            for (const auto& att : fb.m_attachments)
+                if (att.m_attachmentPoint == 0x8D00 /*DEPTH_ATTACHMENT*/ ||
+                    att.m_attachmentPoint == 0x821A /*DEPTH_STENCIL_ATTACHMENT*/)
+                    hasDepthAttachment = true;
+        if (hasDepthAttachment)
+            glEnable(GL_DEPTH_TEST);
+    }
+
     // ---- pixel store ----
     for (const auto& [parameterKey, parameterValue] : state.m_pixelStoreParameters) {
         GLenum paramName = static_cast<GLenum>(std::stoul(parameterKey));
@@ -416,6 +475,7 @@ bool ResourceManager::uploadAllResources(const FrameCapture& capture,
         if (!uploadTextureData(t, captureDirectoryPath, isRT, outError)) return false;
     }
     dbgGlPhase("textures");
+    registerDepthTextures(capture);
     for (const auto& s : capture.m_shaders)
         if (!compileShader(s, outError)) return false;
     dbgGlPhase("shaders");

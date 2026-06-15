@@ -3,9 +3,88 @@
 #include "resourceManagement/ResourceAllocator.h"
 #include <fstream>
 #include <glad/gl.h>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 std::string Command::s_captureDirectory;
+
+// ---- depth-texture registry (for per-draw sampler fixup) ----
+static std::unordered_set<uint32_t> s_depthTextureHandles;
+void Command::clearDepthTextureRegistry() { s_depthTextureHandles.clear(); }
+void Command::registerDepthTexture(uint32_t glHandle) { s_depthTextureHandles.insert(glHandle); }
+bool Command::isDepthTexture(uint32_t glHandle) {
+  return s_depthTextureHandles.find(glHandle) != s_depthTextureHandles.end();
+}
+
+// Per-draw sampler fixup. WebGL sets sampler→unit via init-time glUniform1i
+// calls that aren't in the frame capture, so samplers default to unit 0. If the
+// texture currently bound at a sampler's unit doesn't match the sampler's kind
+// (e.g. a sampler2D pointing at a unit that holds a cube map → reads 0 → black),
+// repoint it to a unit whose currently-bound texture matches. Only fixes
+// mismatched samplers, so correctly-defaulted ones (e.g. fullscreen passes that
+// bind their texture to unit 0) are left untouched.
+static void fixupSamplerBindings() {
+  GLint program = 0;
+  glGetIntegerv(GL_CURRENT_PROGRAM, &program);
+  if (program == 0)
+    return;
+  GLint savedActive = GL_TEXTURE0;
+  glGetIntegerv(GL_ACTIVE_TEXTURE, &savedActive);
+
+  auto boundAt = [](GLint unit, GLenum bindingEnum) -> GLuint {
+    glActiveTexture(GL_TEXTURE0 + unit);
+    GLint h = 0;
+    glGetIntegerv(bindingEnum, &h);
+    return static_cast<GLuint>(h);
+  };
+
+  GLint uniformCount = 0;
+  glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &uniformCount);
+  constexpr GLint kMaxUnits = 16;
+  for (GLint i = 0; i < uniformCount; ++i) {
+    char name[128] = {0};
+    GLsizei nameLen = 0, arraySize = 0;
+    GLenum type = 0;
+    glGetActiveUniform(program, i, sizeof(name), &nameLen, &arraySize, &type, name);
+    bool wantCube = false, wantDepth = false;
+    switch (type) {
+    case GL_SAMPLER_2D:        break;
+    case GL_SAMPLER_2D_SHADOW: wantDepth = true; break;
+    case GL_SAMPLER_CUBE:      wantCube = true; break;
+    default: continue;
+    }
+    std::string baseName(name);
+    size_t bracket = baseName.find('[');
+    if (bracket != std::string::npos)
+      baseName.erase(bracket);
+    GLint location = glGetUniformLocation(program, baseName.c_str());
+    if (location < 0)
+      continue;
+
+    auto unitMatches = [&](GLint unit) -> bool {
+      if (wantCube)
+        return boundAt(unit, GL_TEXTURE_BINDING_CUBE_MAP) != 0;
+      GLuint h = boundAt(unit, GL_TEXTURE_BINDING_2D);
+      if (h == 0)
+        return false;
+      return wantDepth ? Command::isDepthTexture(h) : !Command::isDepthTexture(h);
+    };
+
+    GLint currentUnit = 0;
+    glGetUniformiv(program, location, &currentUnit);
+    if (currentUnit >= 0 && currentUnit < kMaxUnits && unitMatches(currentUnit))
+      continue; // already correct — leave it
+
+    for (GLint unit = 0; unit < kMaxUnits; ++unit) {
+      if (unitMatches(unit)) {
+        glUniform1i(location, unit);
+        break;
+      }
+    }
+  }
+  glActiveTexture(savedActive);
+}
 
 // ---- state commands ----
 
@@ -176,9 +255,10 @@ BindBufferRangeCommand::BindBufferRangeCommand(uint32_t eventId,
     : Command(eventId, "bindBufferRange"), m_target(target), m_index(index),
       m_bufferId(bufferId), m_offset(offset), m_size(size) {}
 void BindBufferRangeCommand::execute() {
-  glBindBufferRange(
-      m_target, m_index, getMappedHandleOr(ResourceKind::Buffer, m_bufferId),
-      static_cast<GLintptr>(m_offset), static_cast<GLsizeiptr>(m_size));
+  glBindBufferRange(m_target, m_index,
+                    getMappedHandleOr(ResourceKind::Buffer, m_bufferId),
+                    static_cast<GLintptr>(m_offset),
+                    static_cast<GLsizeiptr>(m_size));
 }
 
 BindTextureCommand::BindTextureCommand(uint32_t eventId, uint32_t target,
@@ -261,7 +341,7 @@ void DrawElementsCommand::execute() {
           GL_FRAMEBUFFER,
           getMappedHandle(ResourceKind::Framebuffer, m_framebufferId));
   }
-  uint32_t indexBuffer = 0;
+  fixupSamplerBindings();
   glDrawElements(
       m_drawMode, static_cast<GLsizei>(m_indexCount), m_indexType,
       reinterpret_cast<const void *>(static_cast<uintptr_t>(m_indexOffset)));
@@ -280,6 +360,7 @@ void DrawArraysCommand::execute() {
           GL_FRAMEBUFFER,
           getMappedHandle(ResourceKind::Framebuffer, m_framebufferId));
   }
+  fixupSamplerBindings();
   glDrawArrays(m_drawMode, static_cast<GLint>(m_firstVertex),
                static_cast<GLsizei>(m_vertexCount));
 }
@@ -517,6 +598,20 @@ UniformCommand::UniformCommand(uint32_t eventId, std::string uniformName,
       m_valueOmitted(valueOmitted), m_isSnapshot(isSnapshot),
       m_valueOmittedReason(std::move(valueOmittedReason)),
       m_data(std::move(data)) {}
+// Resolve a uniform location, tolerating a trailing "[0]" on a non-array name.
+// Captures often label scalar/vector uniforms as "name[0]" (e.g.
+// "_MainLightColor[0]"); glGetUniformLocation returns -1 for that on a
+// non-array uniform, so retry with the base name. Without this, per-frame
+// lighting/material uniforms are silently dropped and lit geometry renders black.
+static GLint getUniformLocationFlexible(GLuint program, const std::string& name) {
+  GLint location = glGetUniformLocation(program, name.c_str());
+  if (location < 0 && name.size() >= 3 &&
+      name.compare(name.size() - 3, 3, "[0]") == 0)
+    location = glGetUniformLocation(program,
+                                    name.substr(0, name.size() - 3).c_str());
+  return location;
+}
+
 // Look up a uniform's real GL type (e.g. GL_FLOAT_MAT4) so we can pick the
 // matching glUniform* setter. Snapshots dump every uniform as a flat float
 // array under "uniform4fv", including matrices — so element count alone cannot
@@ -549,7 +644,7 @@ void UniformCommand::execute() {
   if (!uniform || uniform->m_data.empty())
     return;
 
-  GLint location = glGetUniformLocation(program, m_uniformName.c_str());
+  GLint location = getUniformLocationFlexible(program, m_uniformName);
   if (location < 0)
     return;
 
@@ -609,9 +704,8 @@ void UniformMatrixCommand::execute() {
   if (hasMappedHandle(ResourceKind::Program, m_programId))
     glUseProgram(getMappedHandle(ResourceKind::Program, m_programId));
   if (auto *uniform = std::get_if<UniformDataPayload>(&m_data)) {
-    GLint location = glGetUniformLocation(
-        getMappedHandle(ResourceKind::Program, m_programId),
-        m_uniformName.c_str());
+    GLint location = getUniformLocationFlexible(
+        getMappedHandle(ResourceKind::Program, m_programId), m_uniformName);
     if (location < 0)
       return;
     if (uniform->m_data.size() < 16)
@@ -639,7 +733,7 @@ void UniformSamplerCommand::execute() {
     return;
   GLuint program = getMappedHandle(ResourceKind::Program, m_programId);
   glUseProgram(program);
-  GLint location = glGetUniformLocation(program, m_uniformName.c_str());
+  GLint location = getUniformLocationFlexible(program, m_uniformName);
   if (location >= 0)
     glUniform1i(location, static_cast<GLint>(m_textureUnit));
 }

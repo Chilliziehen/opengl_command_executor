@@ -37,6 +37,11 @@ public:
     static bool restoreState(const FrameCapture& capture,
                              std::string& outError);
 
+    /// Register which textures are depth textures (by GL handle) so the per-draw
+    /// sampler fixup can route sampler2DShadow to a depth unit. WebGL's init-time
+    /// glUniform1i sampler bindings aren't in the frame capture.
+    static void registerDepthTextures(const FrameCapture& capture);
+
     /// Bind every VAO, set up its vertex attributes, and bind its EBO.
     static bool restoreVertexArrays(const FrameCapture& capture,
                                     std::string& outError);

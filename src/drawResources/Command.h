@@ -36,6 +36,12 @@ public:
 
     static void setCaptureDirectory(const std::string& path) { s_captureDirectory = path; }
 
+    // Depth-texture registry (GL handles) used by the per-draw sampler fixup to
+    // route sampler2DShadow uniforms to depth texture units.
+    static void clearDepthTextureRegistry();
+    static void registerDepthTexture(uint32_t glHandle);
+    static bool isDepthTexture(uint32_t glHandle);
+
 protected:
     static const std::string& captureDirectory() { return s_captureDirectory; }
 
@@ -237,6 +243,10 @@ class BindTextureCommand final : public Command {
 public:
     BindTextureCommand(uint32_t eventId, uint32_t target, uint32_t textureId, uint32_t unit);
     void execute() override;
+
+    uint32_t target() const    { return m_target; }
+    uint32_t textureId() const { return m_textureId; }
+    uint32_t unit() const      { return m_unit; }
 private:
     uint32_t m_target, m_textureId, m_unit;
 };

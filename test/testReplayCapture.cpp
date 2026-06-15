@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "framecapture/CaptureLoader.h"
+#include "mappers/UniversalDMapper.h"
 #include "resourceManagement/ResourceAllocator.h"
 #include "resourceManagement/ResourceManager.h"
 #include "shaderTranslation/ShaderInterpreter.h"
@@ -187,6 +188,11 @@ int main(int argc, char *argv[]) {
   Command::setCaptureDirectory(capturePath);
   // Drain any leftover errors so per-command checks below are attributable.
   checkGlErrors("before command replay (leftover)");
+  // Debug: stop replay after this eventId, then blit the current draw FBO to the
+  // screen so intermediate render passes can be inspected. -1 = run all.
+  long stopAt = -1;
+  if (const char *s = std::getenv("REPLAY_STOP_AT"))
+    stopAt = std::atol(s);
   size_t executedCount = 0;
   for (auto &cmd : capture.m_commands) {
     if (cmd) {
@@ -195,6 +201,31 @@ int main(int argc, char *argv[]) {
       // Tag any error with the command that produced it.
       checkGlErrors("cmd #" + std::to_string(cmd->getEventId()) + " " +
                     cmd->getCommandName());
+      if (stopAt >= 0 && static_cast<long>(cmd->getEventId()) >= stopAt) {
+        GLint drawFbo = 0;
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFbo);
+        std::cout << "  [STOP] after eventId " << cmd->getEventId()
+                  << "; blitting draw FBO " << drawFbo << " to screen" << std::endl;
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, drawFbo);
+        // Read the HDR color attachment as float to see dim (sub-1/255) content
+        // that an 8-bit blit would round to black.
+        {
+          std::vector<float> hdr(static_cast<size_t>(windowWidth) * windowHeight * 4);
+          glReadPixels(0, 0, windowWidth, windowHeight, GL_RGBA, GL_FLOAT, hdr.data());
+          float mx = 0.0f; size_t nz = 0;
+          for (size_t i = 0; i < hdr.size(); i += 4) {
+            float m = hdr[i] > hdr[i+1] ? hdr[i] : hdr[i+1];
+            if (hdr[i+2] > m) m = hdr[i+2];
+            if (m > mx) mx = m;
+            if (m > 0.0f) ++nz;
+          }
+          std::cout << "  [STOP] HDR max=" << mx << " nonzero=" << nz << std::endl;
+        }
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, windowWidth, windowHeight, 0, 0, windowWidth,
+                          windowHeight, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        break;
+      }
     }
   }
   std::cout << "  Executed " << executedCount << " commands." << std::endl;
@@ -202,6 +233,25 @@ int main(int argc, char *argv[]) {
   // ---- final GL error sweep ----
   if (!checkGlErrors("after execution (final sweep)"))
     std::cout << "  No GL errors." << std::endl;
+
+  // Debug: inspect a depth texture (e.g. shadow map). REPLAY_DEBUG_TEX=<captureId>
+  if (const char *texArg = std::getenv("REPLAY_DEBUG_TEX")) {
+    uint32_t texId = static_cast<uint32_t>(std::atol(texArg));
+    if (hasMappedHandle(ResourceKind::Texture, texId)) {
+      GLuint h = getMappedHandle(ResourceKind::Texture, texId);
+      glBindTexture(GL_TEXTURE_2D, h);
+      GLint w = 0, ht = 0;
+      glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
+      glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &ht);
+      std::vector<float> px(static_cast<size_t>(w) * ht);
+      glGetTexImage(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, GL_FLOAT, px.data());
+      float mn = 1e9f, mx = -1e9f;
+      double sum = 0;
+      for (float v : px) { if (v < mn) mn = v; if (v > mx) mx = v; sum += v; }
+      std::cout << "  [TEX " << texId << "] " << w << "x" << ht << " depth min="
+                << mn << " max=" << mx << " mean=" << (sum / px.size()) << std::endl;
+    }
+  }
 
   // ---- debug: confirm the draw produced output ----
   // Read back the (not-yet-swapped) back buffer and count pixels that differ
