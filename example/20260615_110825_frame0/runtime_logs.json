@@ -1,0 +1,173 @@
+[
+  {
+    "ts": 1781488797694,
+    "level": "log",
+    "msg": "[init] overlay canvas disabled; using bottom-left hotzone trigger only"
+  },
+  {
+    "ts": 1781488797695,
+    "level": "log",
+    "msg": "[init] booted"
+  },
+  {
+    "ts": 1781488797695,
+    "level": "log",
+    "msg": "[init] button rect",
+    "extra": {
+      "left": 16,
+      "top": 0,
+      "right": 216,
+      "bottom": 80
+    }
+  },
+  {
+    "ts": 1781488797725,
+    "level": "log",
+    "msg": "[init] WebGL2 UBO method availability",
+    "extra": {
+      "hasBindBufferRange": true,
+      "hasBindBufferBase": true,
+      "hasGetUniformBlockIndex": true,
+      "hasUniformBlockBinding": true,
+      "hasGetActiveUniformBlockParameter": true
+    }
+  },
+  {
+    "ts": 1781488797725,
+    "level": "log",
+    "msg": "[init] gl hooks installed"
+  },
+  {
+    "ts": 1781492904217,
+    "level": "log",
+    "msg": "[init] capture hotzone tapped",
+    "extra": {
+      "x": 160.27099609375,
+      "y": 57.770843505859375,
+      "rect": {
+        "left": 16,
+        "top": 0,
+        "right": 216,
+        "bottom": 80
+      },
+      "hit": true
+    }
+  },
+  {
+    "ts": 1781492905461,
+    "level": "log",
+    "msg": "[frame] requestCapture invoked",
+    "extra": {
+      "ready": true,
+      "glHookInstalled": true,
+      "loopHookInstalled": true,
+      "saving": false,
+      "capturing": false,
+      "frameIndex": 0
+    }
+  },
+  {
+    "ts": 1781492905461,
+    "level": "log",
+    "msg": "[frame] capture armed for next frame",
+    "extra": {
+      "nextFrameIndexHint": 1
+    }
+  },
+  {
+    "ts": 1781492905470,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: beginning"
+  },
+  {
+    "ts": 1781492905471,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: creating frameCapture object"
+  },
+  {
+    "ts": 1781492905472,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: initialState created"
+  },
+  {
+    "ts": 1781492905472,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: capturing initial resource snapshot"
+  },
+  {
+    "ts": 1781492905473,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: initial resource snapshot complete",
+    "extra": {
+      "shaders": 2,
+      "programs": 1,
+      "buffers": 2,
+      "textures": 0,
+      "framebuffers": 0,
+      "deletedTextures": 0
+    }
+  },
+  {
+    "ts": 1781492905482,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: buffer baseline capture",
+    "extra": {
+      "capturedCount": 2,
+      "results": [
+        {
+          "id": 1,
+          "label": "Buffer#1",
+          "target": 34962,
+          "bufferType": "VBO",
+          "recordedByteLength": 192,
+          "gpuSize": 192,
+          "readSize": 192,
+          "bytesAllZero": false,
+          "bytesHex32": "000000bf000000bf0000003f0000803f00000000000000000000003f000000bf"
+        },
+        {
+          "id": 2,
+          "label": "Buffer#2",
+          "target": 34963,
+          "bufferType": "EBO",
+          "recordedByteLength": 72,
+          "gpuSize": 72,
+          "readSize": 72,
+          "bytesAllZero": false,
+          "bytesHex32": "0000010002000000020003000100050006000100060002000500040007000500"
+        }
+      ]
+    }
+  },
+  {
+    "ts": 1781492905483,
+    "level": "log",
+    "msg": "[frame] frame capture started",
+    "extra": {
+      "frameIndex": 0,
+      "captureName": "20260615_110825_frame0",
+      "canvas": {
+        "width": 430,
+        "height": 932,
+        "cssWidth": 1,
+        "cssHeight": 1,
+        "devicePixelRatio": 1
+      }
+    }
+  },
+  {
+    "ts": 1781492905485,
+    "level": "log",
+    "msg": "[frame] finishFrameCapture: assembling bundle from frame-start snapshot"
+  },
+  {
+    "ts": 1781492905492,
+    "level": "log",
+    "msg": "[frame] finishFrameCapture: captured screen pixels",
+    "extra": {
+      "w": 430,
+      "h": 932,
+      "byteLength": 1603040
+    }
+  }
+]

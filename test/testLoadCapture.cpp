@@ -55,8 +55,8 @@ int main(int argc, char* argv[]) {
     size_t showCount = std::min(capture.commandCount(), size_t(5));
     for (size_t i = 0; i < showCount; ++i) {
         const auto& cmd = capture.m_commands[i];
-        std::cout << "  [" << cmd.m_header.m_eventId << "] "
-                  << cmd.m_header.m_commandName << std::endl;
+        std::cout << "  [" << cmd->getEventId() << "] "
+                  << cmd->getCommandName() << std::endl;
     }
 
     std::cout << "\n========== Texture Previews ==========" << std::endl;

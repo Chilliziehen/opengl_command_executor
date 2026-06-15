@@ -1,0 +1,73 @@
+{
+  "format": "tjrelic.wx.capture",
+  "version": 2,
+  "captureModel": "gl-command-resource-partial",
+  "generatedAt": "2026-06-15T03:08:25.483Z",
+  "frameIndex": 0,
+  "canvas": {
+    "width": 430,
+    "height": 932,
+    "cssWidth": 1,
+    "cssHeight": 1,
+    "devicePixelRatio": 1
+  },
+  "replayerCompatibility": {
+    "currentStandaloneReplayer": true,
+    "hasPreviewPayload": true,
+    "reason": "partial resource bytes baseline only; large resources omitted"
+  },
+  "diagnostics": {
+    "profile": "gl-command-sample-uniform-scalars-matrices-buffer-texture-payload",
+    "commandLimit": 2048,
+    "commandCount": 10,
+    "droppedCommandCount": 0,
+    "uniformCommandCount": 2,
+    "commandLimitReached": false,
+    "largeUploadSkipCount": 0,
+    "largeUploadSkips": [],
+    "resourceMetadataEnabled": true,
+    "resourceBaselineMode": "ubo",
+    "maxResourceBaselineBytes": 4194304,
+    "resourceSnapshotEnabled": false,
+    "bufferUploadPayloadEnabled": true,
+    "textureUploadPayloadEnabled": true,
+    "maxUploadBytes": 536870912,
+    "uniformValueMode": "scalars-and-matrices",
+    "maxUniformDataElements": 256
+  },
+  "projectRoot": "",
+  "sandboxRoot": "http://usr/tuanjierelic-captures",
+  "files": {
+    "commands": "commands.json",
+    "state": "state.json",
+    "shaders": "shaders.json",
+    "programs": "programs.json",
+    "framebuffers": "framebuffers.json",
+    "buffers": [
+      {
+        "id": 1,
+        "label": "Buffer#1",
+        "path": "buffers/Buffer#1.json",
+        "dataPath": "buffers/Buffer#1.bin"
+      },
+      {
+        "id": 2,
+        "label": "Buffer#2",
+        "path": "buffers/Buffer#2.json",
+        "dataPath": "buffers/Buffer#2.bin"
+      }
+    ],
+    "textures": [
+      {
+        "id": 999999,
+        "label": "Screen",
+        "path": "textures/Screen.json",
+        "dataPath": "textures/Screen.bin"
+      }
+    ],
+    "uploads": [],
+    "debugLog": "debug_log.json",
+    "runtimeLogs": "runtime_logs.json",
+    "vaos": "vaos.json"
+  }
+}

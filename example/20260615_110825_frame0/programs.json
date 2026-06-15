@@ -1,0 +1,11 @@
+[
+  {
+    "id": 1,
+    "label": "Program#1",
+    "attachedShaderIds": [
+      1,
+      2
+    ],
+    "linked": true
+  }
+]

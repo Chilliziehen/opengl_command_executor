@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "label": "VAO#1",
+    "attribs": {
+      "0": {
+        "enabled": true,
+        "size": 3,
+        "type": 5126,
+        "normalized": false,
+        "stride": 24,
+        "offset": 0,
+        "bufferId": 1,
+        "name": ""
+      },
+      "1": {
+        "enabled": true,
+        "size": 3,
+        "type": 5126,
+        "normalized": false,
+        "stride": 24,
+        "offset": 12,
+        "bufferId": 1,
+        "name": ""
+      }
+    },
+    "elementArrayBufferId": 2,
+    "deleted": false
+  }
+]

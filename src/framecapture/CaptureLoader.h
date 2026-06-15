@@ -54,10 +54,10 @@ private:
                            const CaptureManifest& manifest,
                            CaptureState&          outState,
                            std::string&           outError);
-    static bool parseCommands(const std::string&     directoryPath,
-                              const CaptureManifest& manifest,
-                              std::vector<Command>&  outCommands,
-                              std::string&           outError);
+    static bool parseCommands(const std::string&      directoryPath,
+                              const CaptureManifest&  manifest,
+                              std::vector<CommandPtr>& outCommands,
+                              std::string&            outError);
 };
 
 #endif // CAPTURE_LOADER_H

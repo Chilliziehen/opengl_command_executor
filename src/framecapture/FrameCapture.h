@@ -30,7 +30,7 @@ public:
     std::vector<CaptureVertexArrayObject> m_vertexArrays;
     std::vector<CaptureFramebuffer>       m_framebuffers;
     CaptureState                          m_state;
-    std::vector<Command>                  m_commands;
+    std::vector<CommandPtr>               m_commands;
 
     // ---- lookup ----
     const CaptureBuffer*            findBuffer(uint32_t id) const;

@@ -1,0 +1,134 @@
+[
+  {
+    "eventId": 1,
+    "name": "viewport",
+    "args": [
+      0,
+      0,
+      430,
+      932
+    ]
+  },
+  {
+    "eventId": 2,
+    "name": "enable",
+    "args": [
+      2929
+    ]
+  },
+  {
+    "eventId": 3,
+    "name": "clearColor",
+    "args": [
+      0.5,
+      0.8253402306679356,
+      0.5,
+      1
+    ]
+  },
+  {
+    "eventId": 4,
+    "name": "clear",
+    "args": [
+      16640
+    ],
+    "mask": 16640,
+    "framebufferId": 0
+  },
+  {
+    "eventId": 5,
+    "name": "useProgram",
+    "args": [],
+    "programId": 1
+  },
+  {
+    "eventId": 6,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          3.2137858867645264,
+          0.2836039066314697,
+          0.7961409687995911,
+          0.7803757786750793,
+          0,
+          2.3873167037963867,
+          -0.15186342597007751,
+          -0.14885622262954712,
+          4.129454135894775,
+          -0.22071737051010132,
+          -0.6196040511131287,
+          -0.6073346734046936,
+          1.161885575781446e-15,
+          -1.3401577943934209e-16,
+          2.893068790435791,
+          3.0338001251220703
+        ]
+      }
+    ],
+    "programId": 1,
+    "uniformName": "u_MVP[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 7,
+    "name": "bindVertexArray",
+    "args": [],
+    "vertexArrayId": 1
+  },
+  {
+    "eventId": 8,
+    "name": "uniformMatrix4fv",
+    "args": [
+      false,
+      {
+        "type": "Float32Array",
+        "data": [
+          4.319849491119385,
+          -0.02171562798321247,
+          0.5756505727767944,
+          0.5642515420913696,
+          0,
+          2.413907051086426,
+          0.01626128889620304,
+          0.01593928225338459,
+          2.952915668487549,
+          0.03176800534129143,
+          -0.8421248197555542,
+          -0.8254490494728088,
+          0,
+          0,
+          2.8589749336242676,
+          3.0003812313079834
+        ]
+      }
+    ],
+    "programId": 1,
+    "uniformName": "u_MVP",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 9,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 0
+  },
+  {
+    "eventId": 10,
+    "name": "bindFramebuffer",
+    "args": [
+      36160
+    ],
+    "target": 36160,
+    "framebufferId": 0
+  }
+]

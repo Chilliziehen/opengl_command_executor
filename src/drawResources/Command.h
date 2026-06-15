@@ -1,341 +1,457 @@
 /**
  * @file Command.h
- * @brief GL command stream structures — maps to entries in commands.json
+ * @brief Polymorphic GL command hierarchy — each subclass::execute() replays one GL call
  */
-
 #ifndef COMMAND_H
 #define COMMAND_H
 
 #include <cstdint>
+#include <memory>
 #include <string>
-#include <vector>
 #include <variant>
+#include <vector>
 
-/// GPU data reference — inline array or external upload file
+// ---- retained data payload types ----
 struct UniformDataPayload {
-    /// JavaScript typed-array type name: "Float32Array", "Int32Array", etc.
     std::string m_arrayType;
-
-    /// Inline numeric data
     std::vector<double> m_data;
 };
-
-/// Reference to an external upload binary file
 struct UploadReference {
     std::string m_uploadPath;
     uint64_t    m_byteLength = 0;
 };
-
-/// Variant for data arguments that can be inline or external
 using CommandDataArgument = std::variant<UniformDataPayload, UploadReference, std::monostate>;
 
-/// Base command header present in every command entry
-struct CommandHeader {
-    /// Monotonically increasing event sequence number
-    uint32_t m_eventId = 0;
+// ---- base class ----
+class Command {
+public:
+    Command(uint32_t eventId, std::string commandName)
+        : m_eventId(eventId), m_commandName(std::move(commandName)) {}
+    virtual ~Command() = default;
 
-    /// GL command name, e.g. "viewport", "drawElements", "uniformMatrix4fv"
+    uint32_t            getEventId()     const { return m_eventId; }
+    const std::string&  getCommandName() const { return m_commandName; }
+
+    virtual void execute() = 0;
+
+    static void setCaptureDirectory(const std::string& path) { s_captureDirectory = path; }
+
+protected:
+    static const std::string& captureDirectory() { return s_captureDirectory; }
+
+private:
+    uint32_t    m_eventId;
     std::string m_commandName;
+    static std::string s_captureDirectory;
 };
 
-// --- Specific command types with typed extra fields ---
+using CommandPtr = std::unique_ptr<Command>;
 
-struct ViewportCommand {
-    std::vector<int32_t> m_bounds; // [x, y, width, height]
+// ---- state commands (no mapper lookup needed) ----
+class ViewportCommand final : public Command {
+public:
+    ViewportCommand(uint32_t eventId, std::vector<int32_t> bounds);
+    void execute() override;
+private:
+    std::vector<int32_t> m_bounds;
 };
 
-struct EnableCommand {
-    uint32_t m_capability = 0; // GLenum
+class EnableCommand final : public Command {
+public:
+    EnableCommand(uint32_t eventId, uint32_t capability, bool enable);
+    void execute() override;
+private:
+    uint32_t m_capability;
+    bool     m_enable;
 };
 
-struct ClearCommand {
-    uint32_t m_mask          = 0;
-    uint32_t m_framebufferId = 0;
+class ClearColorCommand final : public Command {
+public:
+    ClearColorCommand(uint32_t eventId, float r, float g, float b, float a);
+    void execute() override;
+private:
+    float m_red, m_green, m_blue, m_alpha;
 };
 
-struct UseProgramCommand {
-    uint32_t m_programId = 0;
+class ClearCommand final : public Command {
+public:
+    ClearCommand(uint32_t eventId, uint32_t mask, uint32_t framebufferId);
+    void execute() override;
+private:
+    uint32_t m_mask;
+    uint32_t m_framebufferId;
 };
 
-struct UniformCommand {
-    uint32_t    m_programId  = 0;
-    std::string m_uniformName;
-    bool        m_valueOmitted       = false;
-    std::string m_valueOmittedReason;
-    bool        m_isSnapshot         = false;
-    CommandDataArgument m_data;
+class ScissorCommand final : public Command {
+public:
+    ScissorCommand(uint32_t eventId, std::vector<int32_t> box);
+    void execute() override;
+private:
+    std::vector<int32_t> m_box;
 };
 
-struct UniformMatrixCommand {
-    uint32_t    m_programId  = 0;
-    std::string m_uniformName;
-    bool        m_transpose  = false;
-    bool        m_valueOmitted = false;
-    CommandDataArgument m_data;
+class BlendFunctionCommand final : public Command {
+public:
+    BlendFunctionCommand(uint32_t eventId, uint32_t sourceFactor, uint32_t destinationFactor);
+    void execute() override;
+private:
+    uint32_t m_sourceFactor, m_destinationFactor;
 };
 
-struct UniformSamplerCommand {
-    uint32_t    m_textureUnit = 0;
-    uint32_t    m_programId   = 0;
-    std::string m_uniformName;
-    bool        m_valueOmitted = false;
+class BlendEquationCommand final : public Command {
+public:
+    BlendEquationCommand(uint32_t eventId, uint32_t mode);
+    void execute() override;
+private:
+    uint32_t m_mode;
 };
 
-struct BindVertexArrayCommand {
-    uint32_t m_vertexArrayId = 0;
+class CullFaceCommand final : public Command {
+public:
+    CullFaceCommand(uint32_t eventId, uint32_t mode);
+    void execute() override;
+private:
+    uint32_t m_mode;
 };
 
-struct DrawElementsCommand {
-    uint32_t m_drawMode      = 0; // 4=GL_TRIANGLES
-    uint32_t m_indexCount    = 0;
-    uint32_t m_indexType     = 0; // 5123=GL_UNSIGNED_SHORT
-    uint32_t m_indexOffset   = 0;
-    uint32_t m_framebufferId = 0;
+class FrontFaceCommand final : public Command {
+public:
+    FrontFaceCommand(uint32_t eventId, uint32_t orientation);
+    void execute() override;
+private:
+    uint32_t m_orientation;
 };
 
-struct DrawArraysCommand {
-    uint32_t m_drawMode      = 0;
-    uint32_t m_firstVertex   = 0;
-    uint32_t m_vertexCount   = 0;
-    uint32_t m_framebufferId = 0;
+class DepthFunctionCommand final : public Command {
+public:
+    DepthFunctionCommand(uint32_t eventId, uint32_t function);
+    void execute() override;
+private:
+    uint32_t m_function;
 };
 
-struct BindFramebufferCommand {
-    uint32_t m_target        = 0;
-    uint32_t m_framebufferId = 0;
+class DepthMaskCommand final : public Command {
+public:
+    DepthMaskCommand(uint32_t eventId, bool enabled);
+    void execute() override;
+private:
+    bool m_enabled;
 };
 
-struct BindBufferCommand {
-    uint32_t m_target   = 0;
-    uint32_t m_bufferId = 0;
+class ColorMaskCommand final : public Command {
+public:
+    ColorMaskCommand(uint32_t eventId, bool red, bool green, bool blue, bool alpha);
+    void execute() override;
+private:
+    bool m_red, m_green, m_blue, m_alpha;
 };
 
-struct BindBufferBaseCommand {
-    uint32_t m_target   = 0;
-    uint32_t m_index    = 0;
-    uint32_t m_bufferId = 0;
+class LineWidthCommand final : public Command {
+public:
+    LineWidthCommand(uint32_t eventId, float width);
+    void execute() override;
+private:
+    float m_width;
 };
 
-struct BindBufferRangeCommand {
-    uint32_t m_target   = 0;
-    uint32_t m_index    = 0;
-    uint32_t m_bufferId = 0;
-    uint64_t m_offset   = 0;
-    uint64_t m_size     = 0;
+class StencilFunctionCommand final : public Command {
+public:
+    StencilFunctionCommand(uint32_t eventId, uint32_t function, int32_t reference, uint32_t mask);
+    void execute() override;
+private:
+    uint32_t m_function;
+    int32_t  m_reference;
+    uint32_t m_mask;
 };
 
-struct BindTextureCommand {
-    uint32_t m_target    = 0;
-    uint32_t m_textureId = 0;
-    uint32_t m_unit      = 0;
+class StencilOperationCommand final : public Command {
+public:
+    StencilOperationCommand(uint32_t eventId, uint32_t stencilFail, uint32_t depthFail, uint32_t depthPass);
+    void execute() override;
+private:
+    uint32_t m_stencilFail, m_depthFail, m_depthPass;
 };
 
-struct ActiveTextureCommand {
-    uint32_t m_unit = 0;
+class StencilMaskCommand final : public Command {
+public:
+    StencilMaskCommand(uint32_t eventId, uint32_t mask);
+    void execute() override;
+private:
+    uint32_t m_mask;
 };
 
-struct VertexAttribPointerCommand {
-    uint32_t    m_attributeIndex  = 0;
-    uint32_t    m_componentCount  = 0;
-    uint32_t    m_componentType   = 0;
-    bool        m_normalized      = false;
-    uint32_t    m_stride          = 0;
-    uint32_t    m_offset          = 0;
-    uint32_t    m_bufferId        = 0;
+class BlendColorCommand final : public Command {
+public:
+    BlendColorCommand(uint32_t eventId, float r, float g, float b, float a);
+    void execute() override;
+private:
+    float m_red, m_green, m_blue, m_alpha;
+};
+
+// ---- resource-binding commands (mapper lookup needed) ----
+class UseProgramCommand final : public Command {
+public:
+    UseProgramCommand(uint32_t eventId, uint32_t programId);
+    void execute() override;
+private:
+    uint32_t m_programId;
+};
+
+class BindFramebufferCommand final : public Command {
+public:
+    BindFramebufferCommand(uint32_t eventId, uint32_t target, uint32_t framebufferId);
+    void execute() override;
+private:
+    uint32_t m_target;
+    uint32_t m_framebufferId;
+};
+
+class BindBufferCommand final : public Command {
+public:
+    BindBufferCommand(uint32_t eventId, uint32_t target, uint32_t bufferId);
+    void execute() override;
+private:
+    uint32_t m_target;
+    uint32_t m_bufferId;
+};
+
+class BindBufferBaseCommand final : public Command {
+public:
+    BindBufferBaseCommand(uint32_t eventId, uint32_t target, uint32_t index, uint32_t bufferId);
+    void execute() override;
+private:
+    uint32_t m_target, m_index, m_bufferId;
+};
+
+class BindBufferRangeCommand final : public Command {
+public:
+    BindBufferRangeCommand(uint32_t eventId, uint32_t target, uint32_t index,
+                           uint32_t bufferId, uint64_t offset, uint64_t size);
+    void execute() override;
+private:
+    uint32_t m_target, m_index, m_bufferId;
+    uint64_t m_offset, m_size;
+};
+
+class BindTextureCommand final : public Command {
+public:
+    BindTextureCommand(uint32_t eventId, uint32_t target, uint32_t textureId, uint32_t unit);
+    void execute() override;
+private:
+    uint32_t m_target, m_textureId, m_unit;
+};
+
+class ActiveTextureCommand final : public Command {
+public:
+    ActiveTextureCommand(uint32_t eventId, uint32_t unit);
+    void execute() override;
+private:
+    uint32_t m_unit;
+};
+
+class BindVertexArrayCommand final : public Command {
+public:
+    BindVertexArrayCommand(uint32_t eventId, uint32_t vertexArrayId);
+    void execute() override;
+private:
+    uint32_t m_vertexArrayId;
+};
+
+class VertexAttribPointerCommand final : public Command {
+public:
+    VertexAttribPointerCommand(uint32_t eventId, uint32_t attributeIndex, uint32_t componentCount,
+                               uint32_t componentType, bool normalized, uint32_t stride,
+                               uint32_t offset, uint32_t bufferId, std::string attributeName);
+    void execute() override;
+private:
+    uint32_t    m_attributeIndex, m_componentCount, m_componentType;
+    bool        m_normalized;
+    uint32_t    m_stride, m_offset, m_bufferId;
     std::string m_attributeName;
 };
 
-struct VertexAttribEnableCommand {
-    uint32_t m_attributeIndex = 0;
+class VertexAttribEnableCommand final : public Command {
+public:
+    VertexAttribEnableCommand(uint32_t eventId, uint32_t attributeIndex, bool enable);
+    void execute() override;
+private:
+    uint32_t m_attributeIndex;
+    bool     m_enable;
 };
 
-struct VertexAttribDivisorCommand {
-    uint32_t m_attributeIndex = 0;
-    uint32_t m_divisor        = 0;
+class VertexAttribDivisorCommand final : public Command {
+public:
+    VertexAttribDivisorCommand(uint32_t eventId, uint32_t attributeIndex, uint32_t divisor);
+    void execute() override;
+private:
+    uint32_t m_attributeIndex, m_divisor;
 };
 
-struct CreateResourceCommand {
-    uint32_t m_resourceId = 0;
+// ---- draw commands ----
+class DrawElementsCommand final : public Command {
+public:
+    DrawElementsCommand(uint32_t eventId, uint32_t drawMode, uint32_t indexCount,
+                        uint32_t indexType, uint32_t indexOffset, uint32_t framebufferId);
+    void execute() override;
+private:
+    uint32_t m_drawMode, m_indexCount, m_indexType, m_indexOffset, m_framebufferId;
 };
 
-struct DeleteResourceCommand {
-    uint32_t m_resourceId = 0;
+class DrawArraysCommand final : public Command {
+public:
+    DrawArraysCommand(uint32_t eventId, uint32_t drawMode, uint32_t firstVertex,
+                      uint32_t vertexCount, uint32_t framebufferId);
+    void execute() override;
+private:
+    uint32_t m_drawMode, m_firstVertex, m_vertexCount, m_framebufferId;
 };
 
-struct BufferDataCommand {
-    uint32_t              m_target   = 0;
-    uint32_t              m_bufferId = 0;
-    uint64_t              m_offset   = 0;
-    CommandDataArgument   m_data;
+// ---- resource lifecycle ----
+class CreateResourceCommand final : public Command {
+public:
+    enum class ResourceKind { Buffer, Texture, VertexArray, Framebuffer, Shader, Program };
+    CreateResourceCommand(uint32_t eventId, ResourceKind kind, uint32_t resourceId, std::string name);
+    void execute() override;
+private:
+    ResourceKind m_resourceKind;
+    uint32_t     m_resourceId;
 };
 
-struct TextureImageCommand {
-    uint32_t              m_target         = 0;
-    uint32_t              m_mipmapLevel    = 0;
-    uint32_t              m_internalFormat = 0;
-    uint32_t              m_width          = 0;
-    uint32_t              m_height         = 0;
-    uint32_t              m_format         = 0;
-    uint32_t              m_pixelType      = 0;
-    uint32_t              m_textureId      = 0;
-    uint32_t              m_unit           = 0;
-    CommandDataArgument   m_data;
+class DeleteResourceCommand final : public Command {
+public:
+    using ResourceKind = CreateResourceCommand::ResourceKind;
+    DeleteResourceCommand(uint32_t eventId, ResourceKind kind, uint32_t resourceId, std::string name);
+    void execute() override;
+private:
+    ResourceKind m_resourceKind;
+    uint32_t     m_resourceId;
 };
 
-struct GenerateMipmapCommand {
-    uint32_t m_target    = 0;
-    uint32_t m_textureId = 0;
+// ---- data upload commands ----
+class BufferDataCommand final : public Command {
+public:
+    BufferDataCommand(uint32_t eventId, uint32_t target, uint32_t bufferId,
+                      uint64_t offset, CommandDataArgument data, std::string commandName);
+    void execute() override;
+private:
+    uint32_t            m_target, m_bufferId;
+    uint64_t            m_offset;
+    CommandDataArgument m_data;
 };
 
-struct ShaderSourceCommand {
-    uint32_t    m_shaderId = 0;
+class TextureImageCommand final : public Command {
+public:
+    TextureImageCommand(uint32_t eventId, uint32_t target, uint32_t mipmapLevel,
+                        uint32_t internalFormat, uint32_t width, uint32_t height,
+                        uint32_t format, uint32_t pixelType, uint32_t textureId,
+                        CommandDataArgument data, std::string commandName);
+    void execute() override;
+private:
+    uint32_t m_target, m_mipmapLevel, m_internalFormat, m_width, m_height;
+    uint32_t m_format, m_pixelType, m_textureId;
+    CommandDataArgument m_data;
+};
+
+class GenerateMipmapCommand final : public Command {
+public:
+    GenerateMipmapCommand(uint32_t eventId, uint32_t target, uint32_t textureId);
+    void execute() override;
+private:
+    uint32_t m_target, m_textureId;
+};
+
+// ---- shader / program commands ----
+class ShaderSourceCommand final : public Command {
+public:
+    ShaderSourceCommand(uint32_t eventId, uint32_t shaderId, std::string source);
+    void execute() override;
+private:
+    uint32_t    m_shaderId;
     std::string m_source;
 };
 
-struct AttachShaderCommand {
-    uint32_t m_programId = 0;
-    uint32_t m_shaderId  = 0;
+class AttachShaderCommand final : public Command {
+public:
+    AttachShaderCommand(uint32_t eventId, uint32_t programId, uint32_t shaderId);
+    void execute() override;
+private:
+    uint32_t m_programId, m_shaderId;
 };
 
-struct LinkProgramCommand {
-    uint32_t m_programId = 0;
+class LinkProgramCommand final : public Command {
+public:
+    LinkProgramCommand(uint32_t eventId, uint32_t programId);
+    void execute() override;
+private:
+    uint32_t m_programId;
 };
 
-struct FramebufferTexture2DCommand {
-    uint32_t m_framebufferId = 0;
-    uint32_t m_attachment    = 0;
-    uint32_t m_textureTarget = 0;
-    uint32_t m_textureId     = 0;
-    uint32_t m_mipmapLevel   = 0;
+// ---- uniform commands ----
+class UniformCommand final : public Command {
+public:
+    UniformCommand(uint32_t eventId, std::string uniformName, uint32_t programId,
+                   bool valueOmitted, std::string valueOmittedReason, bool isSnapshot,
+                   CommandDataArgument data, std::string commandName);
+    void execute() override;
+private:
+    std::string m_uniformName;
+    uint32_t    m_programId;
+    bool        m_valueOmitted, m_isSnapshot;
+    std::string m_valueOmittedReason;
+    CommandDataArgument m_data;
 };
 
-struct ScissorCommand {
-    std::vector<int32_t> m_box; // [x, y, width, height]
+class UniformMatrixCommand final : public Command {
+public:
+    UniformMatrixCommand(uint32_t eventId, std::string uniformName, uint32_t programId,
+                         bool transpose, bool valueOmitted, CommandDataArgument data);
+    void execute() override;
+private:
+    std::string m_uniformName;
+    uint32_t    m_programId;
+    bool        m_transpose, m_valueOmitted;
+    CommandDataArgument m_data;
 };
 
-struct BlendFunctionCommand {
-    uint32_t m_sourceFactor      = 0;
-    uint32_t m_destinationFactor = 0;
+class UniformSamplerCommand final : public Command {
+public:
+    UniformSamplerCommand(uint32_t eventId, std::string uniformName, uint32_t programId,
+                          uint32_t textureUnit, bool valueOmitted);
+    void execute() override;
+private:
+    std::string m_uniformName;
+    uint32_t    m_programId, m_textureUnit;
+    bool        m_valueOmitted;
 };
 
-struct BlendEquationCommand {
-    uint32_t m_mode = 0;
+// ---- framebuffer commands ----
+class FramebufferTexture2DCommand final : public Command {
+public:
+    FramebufferTexture2DCommand(uint32_t eventId, uint32_t framebufferId, uint32_t attachment,
+                                uint32_t textureTarget, uint32_t textureId, uint32_t mipmapLevel);
+    void execute() override;
+private:
+    uint32_t m_framebufferId, m_attachment, m_textureTarget, m_textureId, m_mipmapLevel;
 };
 
-struct CullFaceCommand {
-    uint32_t m_mode = 0;
+class BlitFramebufferCommand final : public Command {
+public:
+    BlitFramebufferCommand(uint32_t eventId, int32_t sourceX0, int32_t sourceY0,
+                           int32_t sourceX1, int32_t sourceY1, int32_t destinationX0,
+                           int32_t destinationY0, int32_t destinationX1, int32_t destinationY1,
+                           uint32_t mask, uint32_t filter);
+    void execute() override;
+private:
+    int32_t  m_sourceX0, m_sourceY0, m_sourceX1, m_sourceY1;
+    int32_t  m_destinationX0, m_destinationY0, m_destinationX1, m_destinationY1;
+    uint32_t m_mask, m_filter;
 };
 
-struct FrontFaceCommand {
-    uint32_t m_orientation = 0;
+// ---- no-op fallback ----
+class NoOpCommand final : public Command {
+public:
+    NoOpCommand(uint32_t eventId, std::string name);
+    void execute() override {}
 };
 
-struct DepthFunctionCommand {
-    uint32_t m_function = 0;
-};
-
-struct DepthMaskCommand {
-    bool m_enabled = true;
-};
-
-struct ColorMaskCommand {
-    bool m_red   = true;
-    bool m_green = true;
-    bool m_blue  = true;
-    bool m_alpha = true;
-};
-
-struct LineWidthCommand {
-    float m_width = 1.0f;
-};
-
-struct StencilFunctionCommand {
-    uint32_t m_function  = 0;
-    int32_t  m_reference = 0;
-    uint32_t m_mask      = 0;
-};
-
-struct StencilOperationCommand {
-    uint32_t m_stencilFail      = 0;
-    uint32_t m_depthFail        = 0;
-    uint32_t m_depthPass        = 0;
-};
-
-struct StencilMaskCommand {
-    uint32_t m_mask = 0;
-};
-
-struct BlendColorCommand {
-    float m_red   = 0.0f;
-    float m_green = 0.0f;
-    float m_blue  = 0.0f;
-    float m_alpha = 0.0f;
-};
-
-struct BlitFramebufferCommand {
-    int32_t  m_sourceX0      = 0;
-    int32_t  m_sourceY0      = 0;
-    int32_t  m_sourceX1      = 0;
-    int32_t  m_sourceY1      = 0;
-    int32_t  m_destinationX0 = 0;
-    int32_t  m_destinationY0 = 0;
-    int32_t  m_destinationX1 = 0;
-    int32_t  m_destinationY1 = 0;
-    uint32_t m_mask          = 0;
-    uint32_t m_filter        = 0;
-};
-
-/// Variant over all command-specific data types
-using CommandPayload = std::variant<
-    std::monostate,                  // commands with no extra data beyond args
-    ViewportCommand,
-    EnableCommand,
-    ClearCommand,
-    UseProgramCommand,
-    UniformCommand,
-    UniformMatrixCommand,
-    UniformSamplerCommand,
-    BindVertexArrayCommand,
-    DrawElementsCommand,
-    DrawArraysCommand,
-    BindFramebufferCommand,
-    BindBufferCommand,
-    BindBufferBaseCommand,
-    BindBufferRangeCommand,
-    BindTextureCommand,
-    ActiveTextureCommand,
-    VertexAttribPointerCommand,
-    VertexAttribEnableCommand,
-    VertexAttribDivisorCommand,
-    CreateResourceCommand,
-    DeleteResourceCommand,
-    BufferDataCommand,
-    TextureImageCommand,
-    GenerateMipmapCommand,
-    ShaderSourceCommand,
-    AttachShaderCommand,
-    LinkProgramCommand,
-    FramebufferTexture2DCommand,
-    ScissorCommand,
-    BlendFunctionCommand,
-    BlendEquationCommand,
-    CullFaceCommand,
-    FrontFaceCommand,
-    DepthFunctionCommand,
-    DepthMaskCommand,
-    ColorMaskCommand,
-    LineWidthCommand,
-    StencilFunctionCommand,
-    StencilOperationCommand,
-    StencilMaskCommand,
-    BlendColorCommand,
-    BlitFramebufferCommand
->;
-
-/// Full command entry combining the header and typed payload
-struct Command {
-    CommandHeader  m_header;
-    CommandPayload m_payload;
-};
-
-#endif // COMMAND_H
+#endif

@@ -1,6 +1,5 @@
 #include "CaptureLoader.h"
 #include <fstream>
-#include <sstream>
 #include <unordered_map>
 #include <functional>
 #include <nlohmann/json.hpp>
@@ -33,27 +32,38 @@ static bool readJsonFile(const std::string& filePath,
     return true;
 }
 
-// ---- single-value extractors ----
-
-template<typename T>
-static T safeGet(const Json& j, const char* key, T defaultValue) {
-    auto it = j.find(key);
-    if (it == j.end() || it->is_null()) return defaultValue;
-    return it->template get<T>();
+static std::vector<int32_t> parseIntArray(const Json& j) {
+    std::vector<int32_t> out;
+    if (j.is_array()) for (const auto& v : j) out.push_back(v.get<int32_t>());
+    return out;
 }
 
-template<typename T>
-static bool requiredGet(const Json& j, const char* key, T& outValue, std::string& outError) {
-    auto it = j.find(key);
-    if (it == j.end()) {
-        outError = std::string("missing required field: ") + key;
-        return false;
+static std::vector<float> parseFloatArray(const Json& j) {
+    std::vector<float> out;
+    if (j.is_array()) for (const auto& v : j) out.push_back(v.get<float>());
+    return out;
+}
+
+static CommandDataArgument parseCommandDataArg(const Json& arg) {
+    if (!arg.is_object()) return std::monostate{};
+    std::string typeStr = arg.value("type", "");
+    if (typeStr == "UploadRef") {
+        UploadReference ref;
+        ref.m_uploadPath = arg.value("uploadPath", "");
+        ref.m_byteLength = arg.value("byteLength", 0ULL);
+        return ref;
     }
-    outValue = it->template get<T>();
-    return true;
+    if (typeStr == "Float32Array" || typeStr == "Int32Array" || typeStr == "Uint32Array") {
+        UniformDataPayload p;
+        p.m_arrayType = typeStr;
+        if (arg.contains("data") && arg["data"].is_array())
+            for (const auto& v : arg["data"]) p.m_data.push_back(v.get<double>());
+        return p;
+    }
+    return std::monostate{};
 }
 
-// ---- resource parsers ----
+// ---- resource parsers (unchanged from original) ----
 
 static CaptureBuffer parseBuffer(const Json& j) {
     CaptureBuffer b;
@@ -66,7 +76,7 @@ static CaptureBuffer parseBuffer(const Json& j) {
     b.m_capturedByteLength = j.value("capturedByteLength", 0ULL);
     b.m_hasBaselineBytes  = j.value("hasBaselineBytes", false);
     b.m_sourceKind        = j.value("sourceKind", "");
-    b.m_metadataPath      = j.value("dataPath", "");  // kept in metadataPath for simplicity
+    b.m_metadataPath      = j.value("dataPath", "");
     return b;
 }
 
@@ -93,10 +103,9 @@ static TextureWrapper parseTexture(const Json& j) {
     t.m_capturedByteLength = j.value("capturedByteLength", 0ULL);
     t.m_hasBaselineBytes  = j.value("hasBaselineBytes", false);
     t.m_textureBinaryPath = j.value("dataPath", "");
-    if (j.contains("parameters") && j["parameters"].is_object()) {
+    if (j.contains("parameters") && j["parameters"].is_object())
         for (auto& [key, val] : j["parameters"].items())
             t.m_parameters[key] = val.get<int32_t>();
-    }
     return t;
 }
 
@@ -114,10 +123,9 @@ static CaptureProgram parseProgram(const Json& j) {
     p.m_programId = j.value("id", 0U);
     p.m_label     = j.value("label", "");
     p.m_linked    = j.value("linked", false);
-    if (j.contains("attachedShaderIds") && j["attachedShaderIds"].is_array()) {
+    if (j.contains("attachedShaderIds") && j["attachedShaderIds"].is_array())
         for (const auto& sid : j["attachedShaderIds"])
             p.m_attachedShaderIds.push_back(sid.get<uint32_t>());
-    }
     return p;
 }
 
@@ -140,10 +148,9 @@ static CaptureVertexArrayObject parseVertexArrayObject(const Json& j) {
     v.m_label               = j.value("label", "");
     v.m_elementArrayBufferId = j.value("elementArrayBufferId", 0U);
     v.m_deleted             = j.value("deleted", false);
-    if (j.contains("attribs") && j["attribs"].is_object()) {
+    if (j.contains("attribs") && j["attribs"].is_object())
         for (auto& [key, val] : j["attribs"].items())
             v.m_vertexAttributes[key] = parseVertexAttribute(val);
-    }
     return v;
 }
 
@@ -160,482 +167,376 @@ static CaptureFramebuffer parseFramebuffer(const Json& j) {
     CaptureFramebuffer f;
     f.m_framebufferId = j.value("id", 0U);
     f.m_label         = j.value("label", "");
-    if (j.contains("attachments") && j["attachments"].is_array()) {
+    if (j.contains("attachments") && j["attachments"].is_array())
         for (const auto& a : j["attachments"])
             f.m_attachments.push_back(parseAttachment(a));
-    }
     return f;
 }
 
-// ---- command parser ----
+// ---- command parser dispatch (polymorphic) ----
 
-static Command parseCommand(const Json& j);
+using CommandParserFunc = std::function<CommandPtr(const Json&)>;
 
-static CommandHeader parseCommandHeader(const Json& j) {
-    CommandHeader h;
-    h.m_eventId     = j.value("eventId", 0U);
-    h.m_commandName = j.value("name", "");
-    return h;
-}
-
-static std::vector<int32_t> parseIntArray(const Json& j) {
-    std::vector<int32_t> out;
-    if (j.is_array()) {
-        for (const auto& v : j)
-            out.push_back(v.get<int32_t>());
-    }
-    return out;
+static CreateResourceCommand::ResourceKind resourceKindFromName(const std::string& name) {
+    if (name.find("Buffer")      != std::string::npos) return CreateResourceCommand::ResourceKind::Buffer;
+    if (name.find("Texture")     != std::string::npos) return CreateResourceCommand::ResourceKind::Texture;
+    if (name.find("VertexArray") != std::string::npos) return CreateResourceCommand::ResourceKind::VertexArray;
+    if (name.find("Framebuffer") != std::string::npos) return CreateResourceCommand::ResourceKind::Framebuffer;
+    if (name.find("Shader")      != std::string::npos) return CreateResourceCommand::ResourceKind::Shader;
+    if (name.find("Program")     != std::string::npos) return CreateResourceCommand::ResourceKind::Program;
+    return CreateResourceCommand::ResourceKind::Buffer;
 }
 
-static std::vector<float> parseFloatArray(const Json& j) {
-    std::vector<float> out;
-    if (j.is_array())
-        for (const auto& v : j) out.push_back(v.get<float>());
-    return out;
+static uint32_t resourceIdFromJson(const Json& j) {
+    if (j.contains("bufferId"))      return j["bufferId"].get<uint32_t>();
+    if (j.contains("textureId"))     return j["textureId"].get<uint32_t>();
+    if (j.contains("vertexArrayId")) return j["vertexArrayId"].get<uint32_t>();
+    if (j.contains("framebufferId")) return j["framebufferId"].get<uint32_t>();
+    if (j.contains("shaderId"))      return j["shaderId"].get<uint32_t>();
+    if (j.contains("programId"))     return j["programId"].get<uint32_t>();
+    return 0U;
 }
 
-static CommandDataArgument parseCommandDataArg(const Json& arg) {
-    if (!arg.is_object()) return std::monostate{};
-    std::string typeStr = arg.value("type", "");
-    if (typeStr == "UploadRef") {
-        UploadReference ref;
-        ref.m_uploadPath = arg.value("uploadPath", "");
-        ref.m_byteLength = arg.value("byteLength", 0ULL);
-        return ref;
-    }
-    if (typeStr == "Float32Array" || typeStr == "Int32Array" || typeStr == "Uint32Array") {
-        UniformDataPayload p;
-        p.m_arrayType = typeStr;
-        if (arg.contains("data") && arg["data"].is_array())
-            for (const auto& v : arg["data"]) p.m_data.push_back(v.get<double>());
-        return p;
-    }
-    // UploadSkipped / unknown — use monostate
-    return std::monostate{};
-}
+static const std::unordered_map<std::string, CommandParserFunc>& getCommandParsers() {
+    static const std::unordered_map<std::string, CommandParserFunc> parsers = {
+        // --- state commands ---
+        {"viewport", [](const Json& j) -> CommandPtr {
+            return std::make_unique<ViewportCommand>(
+                j.value("eventId", 0U), parseIntArray(j["args"]));
+        }},
+        {"enable", [](const Json& j) -> CommandPtr {
+            uint32_t cap = (j["args"].is_array() && !j["args"].empty()) ? j["args"][0].get<uint32_t>() : 0U;
+            return std::make_unique<EnableCommand>(j.value("eventId", 0U), cap, true);
+        }},
+        {"disable", [](const Json& j) -> CommandPtr {
+            uint32_t cap = (j["args"].is_array() && !j["args"].empty()) ? j["args"][0].get<uint32_t>() : 0U;
+            return std::make_unique<EnableCommand>(j.value("eventId", 0U), cap, false);
+        }},
+        {"clearColor", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<ClearColorCommand>(j.value("eventId", 0U),
+                a[0].get<float>(), a[1].get<float>(), a[2].get<float>(), a[3].get<float>());
+        }},
+        {"clear", [](const Json& j) -> CommandPtr {
+            return std::make_unique<ClearCommand>(j.value("eventId", 0U),
+                j.value("mask", 0U), j.value("framebufferId", 0U));
+        }},
+        {"scissor", [](const Json& j) -> CommandPtr {
+            return std::make_unique<ScissorCommand>(j.value("eventId", 0U), parseIntArray(j["args"]));
+        }},
+        {"blendFunc", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<BlendFunctionCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>());
+        }},
+        {"blendFuncSeparate", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<BlendFunctionCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>());
+        }},
+        {"blendEquation", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<BlendEquationCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U);
+        }},
+        {"blendEquationSeparate", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<BlendEquationCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U);
+        }},
+        {"cullFace", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<CullFaceCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U);
+        }},
+        {"frontFace", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<FrontFaceCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U);
+        }},
+        {"depthFunc", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<DepthFunctionCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U);
+        }},
+        {"depthMask", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<DepthMaskCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<bool>() : true);
+        }},
+        {"colorMask", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<ColorMaskCommand>(j.value("eventId", 0U),
+                a[0].get<bool>(), a[1].get<bool>(), a[2].get<bool>(), a[3].get<bool>());
+        }},
+        {"lineWidth", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<LineWidthCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<float>() : 1.0f);
+        }},
+        {"stencilFunc", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<StencilFunctionCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<int32_t>(), a[2].get<uint32_t>());
+        }},
+        {"stencilFuncSeparate", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<StencilFunctionCommand>(j.value("eventId", 0U),
+                a[1].get<uint32_t>(), a[2].get<int32_t>(), a[3].get<uint32_t>());
+        }},
+        {"stencilOp", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<StencilOperationCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>());
+        }},
+        {"stencilOpSeparate", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<StencilOperationCommand>(j.value("eventId", 0U),
+                a[1].get<uint32_t>(), a[2].get<uint32_t>(), a[3].get<uint32_t>());
+        }},
+        {"stencilMask", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<StencilMaskCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U);
+        }},
+        {"stencilMaskSeparate", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<StencilMaskCommand>(j.value("eventId", 0U),
+                (a.is_array() && a.size() >= 2) ? a[1].get<uint32_t>() : 0U);
+        }},
+        {"blendColor", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<BlendColorCommand>(j.value("eventId", 0U),
+                a[0].get<float>(), a[1].get<float>(), a[2].get<float>(), a[3].get<float>());
+        }},
 
-// Per-command parsers
-static ViewportCommand parseViewport(const Json& j) {
-    ViewportCommand c;
-    if (j.contains("args") && j["args"].is_array())
-        c.m_bounds = parseIntArray(j["args"]);
-    return c;
-}
-static EnableCommand parseEnable(const Json& j) {
-    EnableCommand c;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) c.m_capability = a[0].get<uint32_t>();
-    return c;
-}
-static ClearCommand parseClear(const Json& j) {
-    ClearCommand c;
-    c.m_mask          = j.value("mask", 0U);
-    c.m_framebufferId = j.value("framebufferId", 0U);
-    return c;
-}
-static UseProgramCommand parseUseProgram(const Json& j) {
-    return { j.value("programId", 0U) };
-}
-static UniformCommand parseUniform(const Json& j) {
-    UniformCommand u;
-    u.m_programId          = j.value("programId", 0U);
-    u.m_uniformName        = j.value("uniformName", "");
-    u.m_valueOmitted       = j.value("valueOmitted", false);
-    u.m_valueOmittedReason = j.value("valueOmittedReason", "");
-    u.m_isSnapshot         = j.value("_snapshot", false);
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) u.m_data = parseCommandDataArg(a[0]);
-    return u;
-}
-static UniformMatrixCommand parseUniformMatrix(const Json& j) {
-    UniformMatrixCommand u;
-    u.m_programId    = j.value("programId", 0U);
-    u.m_uniformName  = j.value("uniformName", "");
-    u.m_valueOmitted = j.value("valueOmitted", false);
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 2) {
-        u.m_transpose = a[0].get<bool>();
-        u.m_data      = parseCommandDataArg(a[1]);
-    }
-    return u;
-}
-static UniformSamplerCommand parseUniformSampler(const Json& j) {
-    UniformSamplerCommand u;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) u.m_textureUnit = a[0].get<uint32_t>();
-    u.m_programId    = j.value("programId", 0U);
-    u.m_uniformName  = j.value("uniformName", "");
-    u.m_valueOmitted = j.value("valueOmitted", false);
-    return u;
-}
-static BindVertexArrayCommand parseBindVertexArray(const Json& j) {
-    return { j.value("vertexArrayId", 0U) };
-}
-static DrawElementsCommand parseDrawElements(const Json& j) {
-    DrawElementsCommand d;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 4) {
-        d.m_drawMode    = a[0].get<uint32_t>();
-        d.m_indexCount  = a[1].get<uint32_t>();
-        d.m_indexType   = a[2].get<uint32_t>();
-        d.m_indexOffset = a[3].get<uint32_t>();
-    }
-    d.m_framebufferId = j.value("framebufferId", 0U);
-    return d;
-}
-static DrawArraysCommand parseDrawArrays(const Json& j) {
-    DrawArraysCommand d;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 3) {
-        d.m_drawMode    = a[0].get<uint32_t>();
-        d.m_firstVertex = a[1].get<uint32_t>();
-        d.m_vertexCount = a[2].get<uint32_t>();
-    }
-    d.m_framebufferId = j.value("framebufferId", 0U);
-    return d;
-}
-static BindFramebufferCommand parseBindFramebuffer(const Json& j) {
-    return { j.value("target", 0U), j.value("framebufferId", 0U) };
-}
-static BindBufferCommand parseBindBuffer(const Json& j) {
-    BindBufferCommand b;
-    b.m_target   = j.value("target", 0U);
-    b.m_bufferId = j.value("bufferId", 0U);
-    return b;
-}
-static BindBufferBaseCommand parseBindBufferBase(const Json& j) {
-    BindBufferBaseCommand b;
-    b.m_target   = j.value("target", 0U);
-    b.m_index    = j.value("index", 0U);
-    b.m_bufferId = j.value("bufferId", 0U);
-    return b;
-}
-static BindBufferRangeCommand parseBindBufferRange(const Json& j) {
-    BindBufferRangeCommand b;
-    b.m_target   = j.value("target", 0U);
-    b.m_index    = j.value("index", 0U);
-    b.m_bufferId = j.value("bufferId", 0U);
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 5) {
-        b.m_offset = a[3].get<uint64_t>();
-        b.m_size   = a[4].get<uint64_t>();
-    }
-    return b;
-}
-static BindTextureCommand parseBindTexture(const Json& j) {
-    BindTextureCommand b;
-    b.m_target    = j.value("target", 0U);
-    b.m_textureId = j.value("textureId", 0U);
-    b.m_unit      = j.value("unit", 0U);
-    return b;
-}
-static ActiveTextureCommand parseActiveTexture(const Json& j) {
-    return { j.value("unit", 0U) };
-}
-static VertexAttribPointerCommand parseVertexAttribPointer(const Json& j) {
-    VertexAttribPointerCommand v;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 6) {
-        v.m_attributeIndex = a[0].get<uint32_t>();
-        v.m_componentCount = a[1].get<uint32_t>();
-        v.m_componentType  = a[2].get<uint32_t>();
-        v.m_normalized     = a[3].get<bool>();
-        v.m_stride         = a[4].get<uint32_t>();
-        v.m_offset         = a[5].get<uint32_t>();
-    }
-    v.m_bufferId       = j.value("bufferId", 0U);
-    v.m_attributeName  = j.value("attribName", "");
-    return v;
-}
-static VertexAttribEnableCommand parseVertexAttribEnable(const Json& j) {
-    VertexAttribEnableCommand v;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) v.m_attributeIndex = a[0].get<uint32_t>();
-    return v;
-}
-static VertexAttribDivisorCommand parseVertexAttribDivisor(const Json& j) {
-    VertexAttribDivisorCommand v;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 2) {
-        v.m_attributeIndex = a[0].get<uint32_t>();
-        v.m_divisor        = a[1].get<uint32_t>();
-    }
-    return v;
-}
-static CreateResourceCommand parseCreateResource(const Json& j) {
-    uint32_t id = 0;
-    if (j.contains("bufferId"))      id = j["bufferId"].get<uint32_t>();
-    else if (j.contains("textureId")) id = j["textureId"].get<uint32_t>();
-    else if (j.contains("vertexArrayId")) id = j["vertexArrayId"].get<uint32_t>();
-    else if (j.contains("framebufferId")) id = j["framebufferId"].get<uint32_t>();
-    return { id };
-}
-static DeleteResourceCommand parseDeleteResource(const Json& j) {
-    uint32_t id = 0;
-    if (j.contains("bufferId"))       id = j["bufferId"].get<uint32_t>();
-    else if (j.contains("textureId"))  id = j["textureId"].get<uint32_t>();
-    else if (j.contains("vertexArrayId")) id = j["vertexArrayId"].get<uint32_t>();
-    else if (j.contains("framebufferId")) id = j["framebufferId"].get<uint32_t>();
-    return { id };
-}
-static BufferDataCommand parseBufferData(const Json& j) {
-    BufferDataCommand b;
-    b.m_target   = j.value("target", 0U);
-    b.m_bufferId = j.value("bufferId", 0U);
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 3) {
-        b.m_offset = a[1].get<uint64_t>();
-        b.m_data   = parseCommandDataArg(a[2]);
-    }
-    return b;
-}
-static TextureImageCommand parseTexImage(const Json& j) {
-    TextureImageCommand t;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 9) {
-        t.m_textureId      = a[0].get<uint32_t>();
-        t.m_mipmapLevel    = a[1].get<uint32_t>();
-        t.m_internalFormat = a[2].get<uint32_t>();
-        t.m_width          = a[3].get<uint32_t>();
-        t.m_height         = a[4].get<uint32_t>();
-        t.m_format         = a[6].get<uint32_t>();
-        t.m_pixelType      = a[7].get<uint32_t>();
-        t.m_data           = parseCommandDataArg(a[8]);
-    }
-    t.m_textureId = j.value("textureId", 0U);
-    return t;
-}
-static GenerateMipmapCommand parseGenerateMipmap(const Json& j) {
-    GenerateMipmapCommand g;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) g.m_target = a[0].get<uint32_t>();
-    g.m_textureId = j.value("textureId", 0U);
-    return g;
-}
-static ShaderSourceCommand parseShaderSource(const Json& j) {
-    ShaderSourceCommand s;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 2) {
-        s.m_shaderId = a[0].get<uint32_t>();
-        s.m_source   = a[1].get<std::string>();
-    }
-    return s;
-}
-static AttachShaderCommand parseAttachShader(const Json& j) {
-    return { j.value("programId", 0U), j.value("shaderId", 0U) };
-}
-static LinkProgramCommand parseLinkProgram(const Json& j) {
-    return { j.value("programId", 0U) };
-}
-static FramebufferTexture2DCommand parseFramebufferTexture2D(const Json& j) {
-    FramebufferTexture2DCommand f;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 5) {
-        f.m_textureTarget = a[2].get<uint32_t>();
-        f.m_textureId     = a[3].get<uint32_t>();
-        f.m_mipmapLevel   = a[4].get<uint32_t>();
-    }
-    f.m_framebufferId = j.value("framebufferId", 0U);
-    f.m_attachment    = j.value("attachment", 0U);
-    return f;
-}
-static ScissorCommand parseScissor(const Json& j) {
-    ScissorCommand s;
-    if (j.contains("args") && j["args"].is_array())
-        s.m_box = parseIntArray(j["args"]);
-    return s;
-}
-static BlendFunctionCommand parseBlendFunc(const Json& j) {
-    BlendFunctionCommand b;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 2) {
-        b.m_sourceFactor      = a[0].get<uint32_t>();
-        b.m_destinationFactor = a[1].get<uint32_t>();
-    }
-    return b;
-}
-static BlendEquationCommand parseBlendEquation(const Json& j) {
-    BlendEquationCommand b;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) b.m_mode = a[0].get<uint32_t>();
-    return b;
-}
-static CullFaceCommand parseCullFace(const Json& j) {
-    CullFaceCommand c;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) c.m_mode = a[0].get<uint32_t>();
-    return c;
-}
-static FrontFaceCommand parseFrontFace(const Json& j) {
-    FrontFaceCommand f;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) f.m_orientation = a[0].get<uint32_t>();
-    return f;
-}
-static DepthFunctionCommand parseDepthFunc(const Json& j) {
-    DepthFunctionCommand d;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) d.m_function = a[0].get<uint32_t>();
-    return d;
-}
-static DepthMaskCommand parseDepthMask(const Json& j) {
-    DepthMaskCommand d;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) d.m_enabled = a[0].get<bool>();
-    return d;
-}
-static ColorMaskCommand parseColorMask(const Json& j) {
-    ColorMaskCommand c;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 4) {
-        c.m_red   = a[0].get<bool>();
-        c.m_green = a[1].get<bool>();
-        c.m_blue  = a[2].get<bool>();
-        c.m_alpha = a[3].get<bool>();
-    }
-    return c;
-}
-static LineWidthCommand parseLineWidth(const Json& j) {
-    LineWidthCommand l;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) l.m_width = a[0].get<float>();
-    return l;
-}
-static StencilFunctionCommand parseStencilFunc(const Json& j) {
-    StencilFunctionCommand s;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 3) {
-        s.m_function  = a[0].get<uint32_t>();
-        s.m_reference = a[1].get<int32_t>();
-        s.m_mask      = a[2].get<uint32_t>();
-    }
-    return s;
-}
-static StencilOperationCommand parseStencilOp(const Json& j) {
-    StencilOperationCommand s;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 3) {
-        s.m_stencilFail = a[0].get<uint32_t>();
-        s.m_depthFail   = a[1].get<uint32_t>();
-        s.m_depthPass   = a[2].get<uint32_t>();
-    }
-    return s;
-}
-static StencilMaskCommand parseStencilMask(const Json& j) {
-    StencilMaskCommand s;
-    const auto& a = j["args"];
-    if (a.is_array() && !a.empty()) s.m_mask = a[0].get<uint32_t>();
-    return s;
-}
-static BlendColorCommand parseBlendColor(const Json& j) {
-    BlendColorCommand b;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 4) {
-        b.m_red   = a[0].get<float>();
-        b.m_green = a[1].get<float>();
-        b.m_blue  = a[2].get<float>();
-        b.m_alpha = a[3].get<float>();
-    }
-    return b;
-}
-static BlitFramebufferCommand parseBlitFramebuffer(const Json& j) {
-    BlitFramebufferCommand b;
-    const auto& a = j["args"];
-    if (a.is_array() && a.size() >= 10) {
-        b.m_sourceX0      = a[0].get<int32_t>();
-        b.m_sourceY0      = a[1].get<int32_t>();
-        b.m_sourceX1      = a[2].get<int32_t>();
-        b.m_sourceY1      = a[3].get<int32_t>();
-        b.m_destinationX0 = a[4].get<int32_t>();
-        b.m_destinationY0 = a[5].get<int32_t>();
-        b.m_destinationX1 = a[6].get<int32_t>();
-        b.m_destinationY1 = a[7].get<int32_t>();
-        b.m_mask          = a[8].get<uint32_t>();
-        b.m_filter        = a[9].get<uint32_t>();
-    }
-    return b;
-}
+        // --- resource-binding commands ---
+        {"useProgram", [](const Json& j) -> CommandPtr {
+            return std::make_unique<UseProgramCommand>(j.value("eventId", 0U), j.value("programId", 0U));
+        }},
+        {"bindFramebuffer", [](const Json& j) -> CommandPtr {
+            return std::make_unique<BindFramebufferCommand>(j.value("eventId", 0U),
+                j.value("target", 0U), j.value("framebufferId", 0U));
+        }},
+        {"bindBuffer", [](const Json& j) -> CommandPtr {
+            return std::make_unique<BindBufferCommand>(j.value("eventId", 0U),
+                j.value("target", 0U), j.value("bufferId", 0U));
+        }},
+        {"bindBufferBase", [](const Json& j) -> CommandPtr {
+            return std::make_unique<BindBufferBaseCommand>(j.value("eventId", 0U),
+                j.value("target", 0U), j.value("index", 0U), j.value("bufferId", 0U));
+        }},
+        {"bindBufferRange", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            uint64_t off = (a.is_array() && a.size() >= 5) ? a[3].get<uint64_t>() : 0ULL;
+            uint64_t sz  = (a.is_array() && a.size() >= 5) ? a[4].get<uint64_t>() : 0ULL;
+            return std::make_unique<BindBufferRangeCommand>(j.value("eventId", 0U),
+                j.value("target", 0U), j.value("index", 0U), j.value("bufferId", 0U), off, sz);
+        }},
+        {"bindTexture", [](const Json& j) -> CommandPtr {
+            return std::make_unique<BindTextureCommand>(j.value("eventId", 0U),
+                j.value("target", 0U), j.value("textureId", 0U), j.value("unit", 0U));
+        }},
+        {"activeTexture", [](const Json& j) -> CommandPtr {
+            return std::make_unique<ActiveTextureCommand>(j.value("eventId", 0U), j.value("unit", 0U));
+        }},
+        {"bindVertexArray", [](const Json& j) -> CommandPtr {
+            return std::make_unique<BindVertexArrayCommand>(j.value("eventId", 0U),
+                j.value("vertexArrayId", 0U));
+        }},
+        {"vertexAttribPointer", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<VertexAttribPointerCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
+                a[3].get<bool>(), a[4].get<uint32_t>(), a[5].get<uint32_t>(),
+                j.value("bufferId", 0U), j.value("attribName", ""));
+        }},
+        {"enableVertexAttribArray", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<VertexAttribEnableCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U, true);
+        }},
+        {"disableVertexAttribArray", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<VertexAttribEnableCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U, false);
+        }},
+        {"vertexAttribDivisor", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<VertexAttribDivisorCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>());
+        }},
 
-// Command dispatch table
-using CommandParser = std::function<CommandPayload(const Json&)>;
+        // --- draw commands ---
+        {"drawElements", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<DrawElementsCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
+                a[3].get<uint32_t>(), j.value("framebufferId", 0U));
+        }},
+        {"drawArrays", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<DrawArraysCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
+                j.value("framebufferId", 0U));
+        }},
 
-static const std::unordered_map<std::string, CommandParser>& commandParsers() {
-    static const std::unordered_map<std::string, CommandParser> parsers = {
-        {"viewport",                [](const Json& j) -> CommandPayload { return parseViewport(j); }},
-        {"enable",                  [](const Json& j) -> CommandPayload { return parseEnable(j); }},
-        {"disable",                 [](const Json& j) -> CommandPayload { return parseEnable(j); }},
-        {"clearColor",              [](const Json& j) -> CommandPayload { return std::monostate{}; }},
-        {"clear",                   [](const Json& j) -> CommandPayload { return parseClear(j); }},
-        {"useProgram",              [](const Json& j) -> CommandPayload { return parseUseProgram(j); }},
-        {"uniform1i",               [](const Json& j) -> CommandPayload { return parseUniformSampler(j); }},
-        {"uniform4fv",              [](const Json& j) -> CommandPayload { return parseUniform(j); }},
-        {"uniformMatrix4fv",        [](const Json& j) -> CommandPayload { return parseUniformMatrix(j); }},
-        {"bindVertexArray",         [](const Json& j) -> CommandPayload { return parseBindVertexArray(j); }},
-        {"drawElements",            [](const Json& j) -> CommandPayload { return parseDrawElements(j); }},
-        {"drawArrays",              [](const Json& j) -> CommandPayload { return parseDrawArrays(j); }},
-        {"bindFramebuffer",         [](const Json& j) -> CommandPayload { return parseBindFramebuffer(j); }},
-        {"bindBuffer",              [](const Json& j) -> CommandPayload { return parseBindBuffer(j); }},
-        {"bindBufferBase",          [](const Json& j) -> CommandPayload { return parseBindBufferBase(j); }},
-        {"bindBufferRange",         [](const Json& j) -> CommandPayload { return parseBindBufferRange(j); }},
-        {"bindTexture",             [](const Json& j) -> CommandPayload { return parseBindTexture(j); }},
-        {"activeTexture",           [](const Json& j) -> CommandPayload { return parseActiveTexture(j); }},
-        {"vertexAttribPointer",     [](const Json& j) -> CommandPayload { return parseVertexAttribPointer(j); }},
-        {"enableVertexAttribArray",  [](const Json& j) -> CommandPayload { return parseVertexAttribEnable(j); }},
-        {"disableVertexAttribArray", [](const Json& j) -> CommandPayload { return parseVertexAttribEnable(j); }},
-        {"vertexAttribDivisor",     [](const Json& j) -> CommandPayload { return parseVertexAttribDivisor(j); }},
-        {"createVertexArray",       [](const Json& j) -> CommandPayload { return parseCreateResource(j); }},
-        {"deleteVertexArray",       [](const Json& j) -> CommandPayload { return parseDeleteResource(j); }},
-        {"createBuffer",            [](const Json& j) -> CommandPayload { return parseCreateResource(j); }},
-        {"deleteBuffer",            [](const Json& j) -> CommandPayload { return parseDeleteResource(j); }},
-        {"createTexture",           [](const Json& j) -> CommandPayload { return parseCreateResource(j); }},
-        {"deleteTexture",           [](const Json& j) -> CommandPayload { return parseDeleteResource(j); }},
-        {"createFramebuffer",       [](const Json& j) -> CommandPayload { return parseCreateResource(j); }},
-        {"deleteFramebuffer",       [](const Json& j) -> CommandPayload { return parseDeleteResource(j); }},
-        {"bufferData",              [](const Json& j) -> CommandPayload { return parseBufferData(j); }},
-        {"bufferSubData",           [](const Json& j) -> CommandPayload { return parseBufferData(j); }},
-        {"texImage2D",              [](const Json& j) -> CommandPayload { return parseTexImage(j); }},
-        {"texSubImage2D",           [](const Json& j) -> CommandPayload { return parseTexImage(j); }},
-        {"generateMipmap",          [](const Json& j) -> CommandPayload { return parseGenerateMipmap(j); }},
-        {"shaderSource",            [](const Json& j) -> CommandPayload { return parseShaderSource(j); }},
-        {"compileShader",           [](const Json& j) -> CommandPayload { return std::monostate{}; }},
-        {"attachShader",            [](const Json& j) -> CommandPayload { return parseAttachShader(j); }},
-        {"linkProgram",             [](const Json& j) -> CommandPayload { return parseLinkProgram(j); }},
-        {"framebufferTexture2D",    [](const Json& j) -> CommandPayload { return parseFramebufferTexture2D(j); }},
-        {"scissor",                 [](const Json& j) -> CommandPayload { return parseScissor(j); }},
-        {"blendFunc",               [](const Json& j) -> CommandPayload { return parseBlendFunc(j); }},
-        {"blendFuncSeparate",       [](const Json& j) -> CommandPayload { return parseBlendFunc(j); }},
-        {"blendEquation",           [](const Json& j) -> CommandPayload { return parseBlendEquation(j); }},
-        {"blendEquationSeparate",   [](const Json& j) -> CommandPayload { return parseBlendEquation(j); }},
-        {"cullFace",                [](const Json& j) -> CommandPayload { return parseCullFace(j); }},
-        {"frontFace",               [](const Json& j) -> CommandPayload { return parseFrontFace(j); }},
-        {"depthFunc",               [](const Json& j) -> CommandPayload { return parseDepthFunc(j); }},
-        {"depthMask",               [](const Json& j) -> CommandPayload { return parseDepthMask(j); }},
-        {"colorMask",               [](const Json& j) -> CommandPayload { return parseColorMask(j); }},
-        {"lineWidth",               [](const Json& j) -> CommandPayload { return parseLineWidth(j); }},
-        {"stencilFunc",             [](const Json& j) -> CommandPayload { return parseStencilFunc(j); }},
-        {"stencilFuncSeparate",     [](const Json& j) -> CommandPayload { return parseStencilFunc(j); }},
-        {"stencilOp",               [](const Json& j) -> CommandPayload { return parseStencilOp(j); }},
-        {"stencilOpSeparate",       [](const Json& j) -> CommandPayload { return parseStencilOp(j); }},
-        {"stencilMask",             [](const Json& j) -> CommandPayload { return parseStencilMask(j); }},
-        {"stencilMaskSeparate",     [](const Json& j) -> CommandPayload { return parseStencilMask(j); }},
-        {"blendColor",              [](const Json& j) -> CommandPayload { return parseBlendColor(j); }},
-        {"blitFramebuffer",         [](const Json& j) -> CommandPayload { return parseBlitFramebuffer(j); }},
-        {"readPixels",              [](const Json& j) -> CommandPayload { return std::monostate{}; }},
-        {"drawBuffers",             [](const Json& j) -> CommandPayload { return std::monostate{}; }},
+        // --- resource lifecycle ---
+        {"createBuffer", [](const Json& j) -> CommandPtr {
+            return std::make_unique<CreateResourceCommand>(j.value("eventId", 0U),
+                CreateResourceCommand::ResourceKind::Buffer, j.value("bufferId", 0U), "createBuffer");
+        }},
+        {"createTexture", [](const Json& j) -> CommandPtr {
+            return std::make_unique<CreateResourceCommand>(j.value("eventId", 0U),
+                CreateResourceCommand::ResourceKind::Texture, j.value("textureId", 0U), "createTexture");
+        }},
+        {"createVertexArray", [](const Json& j) -> CommandPtr {
+            return std::make_unique<CreateResourceCommand>(j.value("eventId", 0U),
+                CreateResourceCommand::ResourceKind::VertexArray, j.value("vertexArrayId", 0U), "createVertexArray");
+        }},
+        {"createFramebuffer", [](const Json& j) -> CommandPtr {
+            return std::make_unique<CreateResourceCommand>(j.value("eventId", 0U),
+                CreateResourceCommand::ResourceKind::Framebuffer, j.value("framebufferId", 0U), "createFramebuffer");
+        }},
+        {"deleteBuffer", [](const Json& j) -> CommandPtr {
+            return std::make_unique<DeleteResourceCommand>(j.value("eventId", 0U),
+                DeleteResourceCommand::ResourceKind::Buffer, j.value("bufferId", 0U), "deleteBuffer");
+        }},
+        {"deleteTexture", [](const Json& j) -> CommandPtr {
+            return std::make_unique<DeleteResourceCommand>(j.value("eventId", 0U),
+                DeleteResourceCommand::ResourceKind::Texture, j.value("textureId", 0U), "deleteTexture");
+        }},
+        {"deleteVertexArray", [](const Json& j) -> CommandPtr {
+            return std::make_unique<DeleteResourceCommand>(j.value("eventId", 0U),
+                DeleteResourceCommand::ResourceKind::VertexArray, j.value("vertexArrayId", 0U), "deleteVertexArray");
+        }},
+        {"deleteFramebuffer", [](const Json& j) -> CommandPtr {
+            return std::make_unique<DeleteResourceCommand>(j.value("eventId", 0U),
+                DeleteResourceCommand::ResourceKind::Framebuffer, j.value("framebufferId", 0U), "deleteFramebuffer");
+        }},
+        {"deleteShader", [](const Json& j) -> CommandPtr {
+            return std::make_unique<DeleteResourceCommand>(j.value("eventId", 0U),
+                DeleteResourceCommand::ResourceKind::Shader, j.value("shaderId", 0U), "deleteShader");
+        }},
+        {"deleteProgram", [](const Json& j) -> CommandPtr {
+            return std::make_unique<DeleteResourceCommand>(j.value("eventId", 0U),
+                DeleteResourceCommand::ResourceKind::Program, j.value("programId", 0U), "deleteProgram");
+        }},
+
+        // --- data upload ---
+        {"bufferData", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            CommandDataArgument data = (a.is_array() && a.size() >= 3) ? parseCommandDataArg(a[2]) : CommandDataArgument{};
+            return std::make_unique<BufferDataCommand>(j.value("eventId", 0U),
+                j.value("target", 0U), j.value("bufferId", 0U),
+                (a.is_array() && a.size() >= 2) ? a[1].get<uint64_t>() : 0ULL,
+                std::move(data), "bufferData");
+        }},
+        {"bufferSubData", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            CommandDataArgument data = (a.is_array() && a.size() >= 3) ? parseCommandDataArg(a[2]) : CommandDataArgument{};
+            return std::make_unique<BufferDataCommand>(j.value("eventId", 0U),
+                j.value("target", 0U), j.value("bufferId", 0U),
+                (a.is_array() && a.size() >= 2) ? a[1].get<uint64_t>() : 0ULL,
+                std::move(data), "bufferSubData");
+        }},
+        {"texImage2D", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<TextureImageCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
+                a[3].get<uint32_t>(), a[4].get<uint32_t>(), a[6].get<uint32_t>(),
+                a[7].get<uint32_t>(), j.value("textureId", 0U),
+                (a.is_array() && a.size() >= 9) ? parseCommandDataArg(a[8]) : CommandDataArgument{},
+                "texImage2D");
+        }},
+        {"texSubImage2D", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<TextureImageCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
+                a[3].get<uint32_t>(), a[4].get<uint32_t>(), a[6].get<uint32_t>(),
+                a[7].get<uint32_t>(), j.value("textureId", 0U),
+                (a.is_array() && a.size() >= 9) ? parseCommandDataArg(a[8]) : CommandDataArgument{},
+                "texSubImage2D");
+        }},
+        {"generateMipmap", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<GenerateMipmapCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0U,
+                j.value("textureId", 0U));
+        }},
+
+        // --- shader / program ---
+        {"shaderSource", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<ShaderSourceCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(),
+                (a.is_array() && a.size() >= 2) ? a[1].get<std::string>() : "");
+        }},
+        {"compileShader", [](const Json& j) -> CommandPtr {
+            return std::make_unique<NoOpCommand>(j.value("eventId", 0U), "compileShader");
+        }},
+        {"attachShader", [](const Json& j) -> CommandPtr {
+            return std::make_unique<AttachShaderCommand>(j.value("eventId", 0U),
+                j.value("programId", 0U), j.value("shaderId", 0U));
+        }},
+        {"linkProgram", [](const Json& j) -> CommandPtr {
+            return std::make_unique<LinkProgramCommand>(j.value("eventId", 0U), j.value("programId", 0U));
+        }},
+
+        // --- uniforms ---
+        {"uniform1i", [](const Json& j) -> CommandPtr {
+            return std::make_unique<UniformSamplerCommand>(j.value("eventId", 0U),
+                j.value("uniformName", ""), j.value("programId", 0U),
+                (j["args"].is_array() && !j["args"].empty()) ? j["args"][0].get<uint32_t>() : 0U,
+                j.value("valueOmitted", false));
+        }},
+        {"uniform4fv", [](const Json& j) -> CommandPtr {
+            CommandDataArgument data = (j["args"].is_array() && !j["args"].empty())
+                ? parseCommandDataArg(j["args"][0]) : CommandDataArgument{};
+            return std::make_unique<UniformCommand>(j.value("eventId", 0U),
+                j.value("uniformName", ""), j.value("programId", 0U),
+                j.value("valueOmitted", false), j.value("valueOmittedReason", ""),
+                j.value("_snapshot", false), std::move(data), "uniform4fv");
+        }},
+        {"uniformMatrix4fv", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            bool transpose = (a.is_array() && a.size() >= 1) ? a[0].get<bool>() : false;
+            CommandDataArgument data = (a.is_array() && a.size() >= 2)
+                ? parseCommandDataArg(a[1]) : CommandDataArgument{};
+            return std::make_unique<UniformMatrixCommand>(j.value("eventId", 0U),
+                j.value("uniformName", ""), j.value("programId", 0U),
+                transpose, j.value("valueOmitted", false), std::move(data));
+        }},
+
+        // --- framebuffer ---
+        {"framebufferTexture2D", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<FramebufferTexture2DCommand>(j.value("eventId", 0U),
+                j.value("framebufferId", 0U), j.value("attachment", 0U),
+                (a.is_array() && a.size() >= 3) ? a[2].get<uint32_t>() : 0U,
+                (a.is_array() && a.size() >= 4) ? a[3].get<uint32_t>() : 0U,
+                (a.is_array() && a.size() >= 5) ? a[4].get<uint32_t>() : 0U);
+        }},
+        {"blitFramebuffer", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<BlitFramebufferCommand>(j.value("eventId", 0U),
+                a[0].get<int32_t>(), a[1].get<int32_t>(), a[2].get<int32_t>(), a[3].get<int32_t>(),
+                a[4].get<int32_t>(), a[5].get<int32_t>(), a[6].get<int32_t>(), a[7].get<int32_t>(),
+                a[8].get<uint32_t>(), a[9].get<uint32_t>());
+        }},
+
+        // --- uncaptured / unsupported (no-op) ---
+        {"readPixels",    [](const Json& j) -> CommandPtr { return std::make_unique<NoOpCommand>(j.value("eventId", 0U), "readPixels"); }},
+        {"drawBuffers",   [](const Json& j) -> CommandPtr { return std::make_unique<NoOpCommand>(j.value("eventId", 0U), "drawBuffers"); }},
     };
     return parsers;
 }
 
-static Command parseCommand(const Json& j) {
-    Command cmd;
-    cmd.m_header = parseCommandHeader(j);
-    auto& parsers = commandParsers();
-    auto it = parsers.find(cmd.m_header.m_commandName);
-    if (it != parsers.end())
-        cmd.m_payload = it->second(j);
-    else
-        cmd.m_payload = std::monostate{};
-    return cmd;
+static CommandPtr parseCommand(const Json& j) {
+    auto& parsers = getCommandParsers();
+    auto it = parsers.find(j.value("name", ""));
+    if (it != parsers.end()) return it->second(j);
+    return std::make_unique<NoOpCommand>(j.value("eventId", 0U), j.value("name", "unknown"));
 }
 
 // ---- manifest ----
@@ -657,11 +558,11 @@ bool CaptureLoader::parseManifest(const std::string& directoryPath,
 
     if (j.contains("canvas")) {
         auto& c = j["canvas"];
-        outManifest.m_canvas.width            = c.value("width", 0U);
-        outManifest.m_canvas.height           = c.value("height", 0U);
-        outManifest.m_canvas.cssWidth         = c.value("cssWidth", 0U);
-        outManifest.m_canvas.cssHeight        = c.value("cssHeight", 0U);
-        outManifest.m_canvas.devicePixelRatio = c.value("devicePixelRatio", 1.0f);
+        outManifest.m_canvas.width             = c.value("width", 0U);
+        outManifest.m_canvas.height            = c.value("height", 0U);
+        outManifest.m_canvas.cssWidth          = c.value("cssWidth", 0U);
+        outManifest.m_canvas.cssHeight         = c.value("cssHeight", 0U);
+        outManifest.m_canvas.devicePixelRatio  = c.value("devicePixelRatio", 1.0f);
     }
     if (j.contains("replayerCompatibility")) {
         auto& r = j["replayerCompatibility"];
@@ -725,7 +626,7 @@ bool CaptureLoader::parseManifest(const std::string& directoryPath,
     return true;
 }
 
-// ---- top-level loaders for each resource file ----
+// ---- top-level resource file loaders ----
 
 bool CaptureLoader::parseBuffers(const std::string&     directoryPath,
                                   const CaptureManifest& manifest,
@@ -734,10 +635,9 @@ bool CaptureLoader::parseBuffers(const std::string&     directoryPath,
     for (auto& entry : manifest.m_files.m_buffers) {
         if (entry.metadataPath.empty()) continue;
         Json j;
-        if (!readJsonFile(joinPath(directoryPath, entry.metadataPath), j, outError))
-            return false;
+        if (!readJsonFile(joinPath(directoryPath, entry.metadataPath), j, outError)) return false;
         CaptureBuffer b = parseBuffer(j);
-        b.m_metadataPath = entry.metadataPath;
+        b.m_metadataPath   = entry.metadataPath;
         b.m_binaryDataPath = entry.binaryDataPath;
         outBuffers.push_back(std::move(b));
     }
@@ -751,8 +651,7 @@ bool CaptureLoader::parseTextures(const std::string&        directoryPath,
     for (auto& entry : manifest.m_files.m_textures) {
         if (entry.metadataPath.empty()) continue;
         Json j;
-        if (!readJsonFile(joinPath(directoryPath, entry.metadataPath), j, outError))
-            return false;
+        if (!readJsonFile(joinPath(directoryPath, entry.metadataPath), j, outError)) return false;
         TextureWrapper t = parseTexture(j);
         t.m_textureMetaPath   = entry.metadataPath;
         t.m_textureBinaryPath = entry.binaryDataPath;
@@ -769,8 +668,7 @@ bool CaptureLoader::parseShaders(const std::string&       directoryPath,
     Json j;
     if (!readJsonFile(filePath, j, outError)) return false;
     if (!j.is_array()) { outError = "shaders.json is not an array"; return false; }
-    for (auto& entry : j)
-        outShaders.push_back(parseShader(entry));
+    for (auto& entry : j) outShaders.push_back(parseShader(entry));
     return true;
 }
 
@@ -782,8 +680,7 @@ bool CaptureLoader::parsePrograms(const std::string&         directoryPath,
     Json j;
     if (!readJsonFile(filePath, j, outError)) return false;
     if (!j.is_array()) { outError = "programs.json is not an array"; return false; }
-    for (auto& entry : j)
-        outPrograms.push_back(parseProgram(entry));
+    for (auto& entry : j) outPrograms.push_back(parseProgram(entry));
     return true;
 }
 
@@ -792,12 +689,11 @@ bool CaptureLoader::parseVertexArrays(const std::string&     directoryPath,
                                        std::vector<CaptureVertexArrayObject>& outVertexArrays,
                                        std::string&                         outError) {
     std::string filePath = joinPath(directoryPath, manifest.m_files.m_vertexArraysPath);
-    if (filePath.empty()) return true; // vaos.json might be absent
+    if (filePath.empty()) return true;
     Json j;
     if (!readJsonFile(filePath, j, outError)) return false;
     if (!j.is_array()) { outError = "vaos.json is not an array"; return false; }
-    for (auto& entry : j)
-        outVertexArrays.push_back(parseVertexArrayObject(entry));
+    for (auto& entry : j) outVertexArrays.push_back(parseVertexArrayObject(entry));
     return true;
 }
 
@@ -809,8 +705,7 @@ bool CaptureLoader::parseFramebuffers(const std::string&       directoryPath,
     Json j;
     if (!readJsonFile(filePath, j, outError)) return false;
     if (!j.is_array()) { outError = "framebuffers.json is not an array"; return false; }
-    for (auto& entry : j)
-        outFramebuffers.push_back(parseFramebuffer(entry));
+    for (auto& entry : j) outFramebuffers.push_back(parseFramebuffer(entry));
     return true;
 }
 
@@ -883,14 +778,16 @@ bool CaptureLoader::parseState(const std::string&     directoryPath,
 
 bool CaptureLoader::parseCommands(const std::string&     directoryPath,
                                    const CaptureManifest& manifest,
-                                   std::vector<Command>&  outCommands,
+                                   std::vector<CommandPtr>&  outCommands,
                                    std::string&           outError) {
     std::string filePath = joinPath(directoryPath, manifest.m_files.m_commandsPath);
     Json j;
     if (!readJsonFile(filePath, j, outError)) return false;
     if (!j.is_array()) { outError = "commands.json is not an array"; return false; }
-    for (auto& entry : j)
-        outCommands.push_back(parseCommand(entry));
+    for (auto& entry : j) {
+        auto cmd = parseCommand(entry);
+        if (cmd) outCommands.push_back(std::move(cmd));
+    }
     return true;
 }
 
