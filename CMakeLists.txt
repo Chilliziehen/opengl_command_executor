@@ -3,7 +3,9 @@ project(drawCommandsGL)
 
 configure_file(${CMAKE_SOURCE_DIR}/config/config.in ${CMAKE_SOURCE_DIR}/config.h)
 
-set(CMAKE_CXX_STANDARD 17)
+
+
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/libs")
@@ -69,7 +71,7 @@ FetchContent_MakeAvailable(imgui)
 add_library(glad INTERFACE)
 
 # 顺着路径，让项目能搜到第三方库的头文件
-target_include_directories(glad INTERFACE "${CMAKE_SOURCE_DIR}/thirdparty/glfw/deps")
+target_include_directories(glad INTERFACE "${GLFW_DEPS_DIR}")
 
 add_library(thirdparties INTERFACE)
 
@@ -79,6 +81,8 @@ target_link_libraries(thirdparties INTERFACE
     glm # 某些版本的 GLM 导出名为 glm::glm，如果报错可以尝试切换
     nlohmann_json::nlohmann_json
 )
+
+set(GLFW_DEPS_DIR "${CMAKE_SOURCE_DIR}/thirdparty/glfw/deps")
 
 # ---- Dear ImGui static lib (core + GLFW/OpenGL3 backends) ----
 add_library(imgui STATIC
@@ -138,6 +142,8 @@ target_compile_definitions(testShaderTranslate PRIVATE
     PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
 )
 
+add_subdirectory(app/glStateManager)
+
 # ---- GUI per-command replayer ----
 add_executable(guiReplayer
     app/guiReplayer.cpp
@@ -146,3 +152,4 @@ target_link_libraries(guiReplayer PRIVATE drawCommandsGLlib thirdparties imgui)
 target_compile_definitions(guiReplayer PRIVATE
     PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
 )
+

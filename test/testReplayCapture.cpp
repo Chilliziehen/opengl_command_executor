@@ -321,6 +321,8 @@ int main(int argc, char *argv[]) {
     for (auto &cmd : capture.m_commands) {
       if (cmd)
         cmd->execute();
+      glfwSwapBuffers(window);
+      glfwSwapBuffers(window);
     }
 
     glfwSwapBuffers(window);
