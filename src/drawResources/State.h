@@ -21,7 +21,9 @@ struct BlendFunction {
 };
 
 /// Blend equation configuration (separate RGB / Alpha)
-struct BlendEquation {
+/// (named *State to avoid clashing with glStateManager's `enum class
+/// BlendEquation` when both libraries are used in one translation unit.)
+struct BlendEquationState {
     uint32_t m_rgbMode   = 0;
     uint32_t m_alphaMode = 0;
 };
@@ -83,7 +85,7 @@ struct CaptureState {
     BlendFunction m_blendFunction;
 
     /// Blend equation (separate RGB / Alpha)
-    BlendEquation m_blendEquation;
+    BlendEquationState m_blendEquation;
 
     /// Face culling mode enum (1029=GL_BACK)
     uint32_t m_cullFaceMode = 0;

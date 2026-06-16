@@ -17,6 +17,11 @@ bool Command::isDepthTexture(uint32_t glHandle) {
   return s_depthTextureHandles.find(glHandle) != s_depthTextureHandles.end();
 }
 
+// ---- default-framebuffer override (FBO id 0 -> this handle) ----
+static uint32_t s_defaultFramebuffer = 0;
+void Command::setDefaultFramebuffer(uint32_t glHandle) { s_defaultFramebuffer = glHandle; }
+uint32_t Command::defaultFramebuffer() { return s_defaultFramebuffer; }
+
 // Per-draw sampler fixup. WebGL sets sampler→unit via init-time glUniform1i
 // calls that aren't in the frame capture, so samplers default to unit 0. If the
 // texture currently bound at a sampler's unit doesn't match the sampler's kind
@@ -123,7 +128,7 @@ void ClearCommand::execute() {
           GL_FRAMEBUFFER,
           getMappedHandle(ResourceKind::Framebuffer, m_framebufferId));
   } else {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebuffer());
   }
   glClear(m_mask);
 }
@@ -224,7 +229,9 @@ BindFramebufferCommand::BindFramebufferCommand(uint32_t eventId,
     : Command(eventId, "bindFramebuffer"), m_target(target),
       m_framebufferId(framebufferId) {}
 void BindFramebufferCommand::execute() {
-  GLuint handle = 0;
+  // id 0 = the capture's default framebuffer; route it through the override so a
+  // GUI host can redirect it to an offscreen FBO (otherwise it's the window).
+  GLuint handle = defaultFramebuffer();
   if (m_framebufferId != 0) {
     if (hasMappedHandle(ResourceKind::Framebuffer, m_framebufferId))
       handle = getMappedHandle(ResourceKind::Framebuffer, m_framebufferId);

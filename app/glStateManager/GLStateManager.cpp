@@ -311,5 +311,135 @@ GLStateSnapshot GLStateManager::CaptureCurrentState() {
     snap.m_depthStencil     = captureDepthStencil();
     snap.m_blend            = captureBlend();
     snap.m_pixelStorage     = capturePixelStorage();
+    glGetIntegerv(GL_VIEWPORT, snap.m_viewport.data());
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, snap.m_clearColor.data());
     return snap;
+}
+
+namespace {
+
+inline void setEnabled(GLenum cap, bool on) {
+    if (on) glEnable(cap); else glDisable(cap);
+}
+
+void restoreResourceBindings(const ResourceBindingState& r) {
+    const GLint maxUnits = geti(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
+    const size_t units = std::min<size_t>(static_cast<size_t>(maxUnits), MAX_TEXTURE_UNITS);
+    for (size_t u = 0; u < units; ++u) {
+        const TextureUnitState& unit = r.m_textureUnits[u];
+        bool touched = false;
+        for (size_t t = 0; t < static_cast<size_t>(TextureTarget::Count); ++t) {
+            if (!unit.m_textureBindings[t].has_value()) continue;
+            if (!touched) { glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + u)); touched = true; }
+            const GLenum target = TextureTargetToGLenum(static_cast<TextureTarget>(t));
+            if (target != 0)
+                glBindTexture(target, *unit.m_textureBindings[t]);
+        }
+        if (unit.m_samplerId.has_value()) {
+            if (!touched) { glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + u)); touched = true; }
+            glBindSampler(static_cast<GLuint>(u), *unit.m_samplerId);
+        }
+    }
+    glActiveTexture(static_cast<GLenum>(GL_TEXTURE0 + r.m_activeTextureSlot));
+
+    const GLint maxUbo = geti(GL_MAX_UNIFORM_BUFFER_BINDINGS);
+    const size_t ubos = std::min<size_t>(static_cast<size_t>(maxUbo), MAX_UNIFORM_BUFFERS);
+    for (size_t i = 0; i < ubos; ++i) {
+        if (!r.m_uniformBufferBindings[i].has_value()) continue;
+        const UniformBufferBinding& b = *r.m_uniformBufferBindings[i];
+        if (b.m_size > 0)
+            glBindBufferRange(GL_UNIFORM_BUFFER, static_cast<GLuint>(i), b.m_bufferId,
+                              static_cast<GLintptr>(b.m_offset),
+                              static_cast<GLsizeiptr>(b.m_size));
+        else
+            glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(i), b.m_bufferId);
+    }
+}
+
+} // namespace
+
+void GLStateManager::RestoreState(const GLStateSnapshot& s) {
+    // ---- shader / VAO (binding the VAO restores its attribs + EBO) ----
+    glUseProgram(s.m_shader.m_programId.value_or(0));
+    glBindVertexArray(s.m_vertexInput.m_vaoId.value_or(0));
+
+    // ---- framebuffers + draw/read buffers ----
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, s.m_framebuffer.m_drawFramebuffer);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, s.m_framebuffer.m_readFramebuffer);
+    if (s.m_framebuffer.m_drawBufferCount > 0) {
+        GLenum bufs[MAX_DRAW_BUFFERS];
+        const size_t n = std::min<size_t>(s.m_framebuffer.m_drawBufferCount, MAX_DRAW_BUFFERS);
+        for (size_t i = 0; i < n; ++i) bufs[i] = s.m_framebuffer.m_drawBuffers[i];
+        glDrawBuffers(static_cast<GLsizei>(n), bufs);
+    }
+    glReadBuffer(s.m_framebuffer.m_readBuffer);
+
+    // ---- resource bindings ----
+    restoreResourceBindings(s.m_resourceBindings);
+
+    // ---- rasterizer ----
+    const RasterizerState& r = s.m_rasterizer;
+    setEnabled(GL_CULL_FACE, r.m_cullFaceEnabled);
+    glCullFace(static_cast<GLenum>(r.m_cullMode));
+    glFrontFace(static_cast<GLenum>(r.m_frontFace));
+    glPolygonMode(GL_FRONT_AND_BACK, static_cast<GLenum>(r.m_polygonMode));
+    setEnabled(GL_SCISSOR_TEST, r.m_scissorTestEnabled);
+    glScissor(r.m_scissorBox[0], r.m_scissorBox[1], r.m_scissorBox[2], r.m_scissorBox[3]);
+    setEnabled(GL_POLYGON_OFFSET_FILL, r.m_polygonOffsetFillEnabled);
+    glPolygonOffset(r.m_polygonOffsetFactor, r.m_polygonOffsetUnits);
+    glLineWidth(r.m_lineWidth);
+    setEnabled(GL_MULTISAMPLE, r.m_multisampleEnabled);
+    setEnabled(GL_DEPTH_CLAMP, r.m_depthClampEnabled);
+    setEnabled(GL_RASTERIZER_DISCARD, r.m_rasterizerDiscardEnabled);
+
+    // ---- depth / stencil ----
+    const DepthStencilState& d = s.m_depthStencil;
+    setEnabled(GL_DEPTH_TEST, d.m_depthTestEnabled);
+    glDepthFunc(static_cast<GLenum>(d.m_depthFunc));
+    glDepthMask(d.m_depthWriteEnabled ? GL_TRUE : GL_FALSE);
+    glDepthRange(static_cast<GLdouble>(d.m_depthRangeNear), static_cast<GLdouble>(d.m_depthRangeFar));
+    setEnabled(GL_STENCIL_TEST, d.m_stencilTestEnabled);
+    glStencilFuncSeparate(GL_FRONT, static_cast<GLenum>(d.m_front.m_func), d.m_front.m_ref, d.m_front.m_compareMask);
+    glStencilMaskSeparate(GL_FRONT, d.m_front.m_writeMask);
+    glStencilOpSeparate(GL_FRONT, static_cast<GLenum>(d.m_front.m_sfail),
+                        static_cast<GLenum>(d.m_front.m_dpfail), static_cast<GLenum>(d.m_front.m_dppass));
+    glStencilFuncSeparate(GL_BACK, static_cast<GLenum>(d.m_back.m_func), d.m_back.m_ref, d.m_back.m_compareMask);
+    glStencilMaskSeparate(GL_BACK, d.m_back.m_writeMask);
+    glStencilOpSeparate(GL_BACK, static_cast<GLenum>(d.m_back.m_sfail),
+                        static_cast<GLenum>(d.m_back.m_dpfail), static_cast<GLenum>(d.m_back.m_dppass));
+
+    // ---- blend ----
+    const BlendState& b = s.m_blend;
+    setEnabled(GL_BLEND, b.m_blendEnabled);
+    glBlendFuncSeparate(static_cast<GLenum>(b.m_srcRGB), static_cast<GLenum>(b.m_dstRGB),
+                        static_cast<GLenum>(b.m_srcAlpha), static_cast<GLenum>(b.m_dstAlpha));
+    glBlendEquationSeparate(static_cast<GLenum>(b.m_rgbEquation), static_cast<GLenum>(b.m_alphaEquation));
+    glBlendColor(b.m_blendColor[0], b.m_blendColor[1], b.m_blendColor[2], b.m_blendColor[3]);
+    glColorMask(b.m_colorMask[0] ? GL_TRUE : GL_FALSE, b.m_colorMask[1] ? GL_TRUE : GL_FALSE,
+                b.m_colorMask[2] ? GL_TRUE : GL_FALSE, b.m_colorMask[3] ? GL_TRUE : GL_FALSE);
+
+    // ---- pixel storage ----
+    const PixelStorageState& p = s.m_pixelStorage;
+    glPixelStorei(GL_PACK_SWAP_BYTES,   p.m_pack.m_swapBytes ? 1 : 0);
+    glPixelStorei(GL_PACK_LSB_FIRST,    p.m_pack.m_lsbFirst ? 1 : 0);
+    glPixelStorei(GL_PACK_ROW_LENGTH,   p.m_pack.m_rowLength);
+    glPixelStorei(GL_PACK_IMAGE_HEIGHT, p.m_pack.m_imageHeight);
+    glPixelStorei(GL_PACK_SKIP_ROWS,    p.m_pack.m_skipRows);
+    glPixelStorei(GL_PACK_SKIP_PIXELS,  p.m_pack.m_skipPixels);
+    glPixelStorei(GL_PACK_SKIP_IMAGES,  p.m_pack.m_skipImages);
+    glPixelStorei(GL_PACK_ALIGNMENT,    p.m_pack.m_alignment);
+    glPixelStorei(GL_UNPACK_SWAP_BYTES,   p.m_unpack.m_swapBytes ? 1 : 0);
+    glPixelStorei(GL_UNPACK_LSB_FIRST,    p.m_unpack.m_lsbFirst ? 1 : 0);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH,   p.m_unpack.m_rowLength);
+    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, p.m_unpack.m_imageHeight);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS,    p.m_unpack.m_skipRows);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS,  p.m_unpack.m_skipPixels);
+    glPixelStorei(GL_UNPACK_SKIP_IMAGES,  p.m_unpack.m_skipImages);
+    glPixelStorei(GL_UNPACK_ALIGNMENT,    p.m_unpack.m_alignment);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER,   p.m_pixelPackBuffer);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, p.m_pixelUnpackBuffer);
+
+    // ---- viewport + clear color ----
+    glViewport(s.m_viewport[0], s.m_viewport[1], s.m_viewport[2], s.m_viewport[3]);
+    glClearColor(s.m_clearColor[0], s.m_clearColor[1], s.m_clearColor[2], s.m_clearColor[3]);
 }

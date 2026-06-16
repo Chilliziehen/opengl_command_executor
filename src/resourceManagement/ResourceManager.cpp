@@ -525,9 +525,10 @@ bool ResourceManager::restoreFramebuffers(const FrameCapture& capture,
         }
     }
 
-    // Restore the frame-start FBO binding (0 = default framebuffer)
+    // Restore the frame-start FBO binding (0 = default framebuffer, routed
+    // through the override so a GUI host can keep the replay off the window).
     if (capture.m_state.m_currentFramebufferId == 0) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, Command::defaultFramebuffer());
     } else if (hasMappedHandle(ResourceKind::Framebuffer, capture.m_state.m_currentFramebufferId)) {
         glBindFramebuffer(GL_FRAMEBUFFER,
             getMappedHandle(ResourceKind::Framebuffer, capture.m_state.m_currentFramebufferId));

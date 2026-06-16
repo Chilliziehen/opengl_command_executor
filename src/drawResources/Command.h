@@ -42,6 +42,12 @@ public:
     static void registerDepthTexture(uint32_t glHandle);
     static bool isDepthTexture(uint32_t glHandle);
 
+    // The GL handle to use for the capture's "default framebuffer" (FBO id 0).
+    // 0 = the real window default framebuffer (normal behavior). A GUI host can
+    // set this to an offscreen FBO so the replay never draws to the window.
+    static void     setDefaultFramebuffer(uint32_t glHandle);
+    static uint32_t defaultFramebuffer();
+
 protected:
     static const std::string& captureDirectory() { return s_captureDirectory; }
 

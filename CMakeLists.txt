@@ -84,6 +84,10 @@ target_link_libraries(thirdparties INTERFACE
     nlohmann_json::nlohmann_json
 )
 
+# glStateManager (added via add_subdirectory below) references GLFW_DEPS_DIR for
+# the glad headers; define it here so it's set before that subdirectory.
+set(GLFW_DEPS_DIR "${CMAKE_SOURCE_DIR}/thirdparty/glfw/deps")
+
 # ---- Dear ImGui static lib (core + GLFW/OpenGL3 backends) ----
 add_library(imgui STATIC
     "${imgui_SOURCE_DIR}/imgui.cpp"
@@ -158,7 +162,10 @@ target_include_directories(testGLStateManager PRIVATE
 add_executable(guiReplayer
     app/guiReplayer.cpp
 )
-target_link_libraries(guiReplayer PRIVATE drawCommandsGLlib thirdparties imgui)
+target_link_libraries(guiReplayer PRIVATE drawCommandsGLlib thirdparties imgui GLStateManager)
+target_include_directories(guiReplayer PRIVATE
+    "${CMAKE_SOURCE_DIR}/app/glStateManager"
+)
 target_compile_definitions(guiReplayer PRIVATE
     PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
 )
