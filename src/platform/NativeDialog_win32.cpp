@@ -58,9 +58,11 @@ bool OpenFolderDialog(std::string &outPath) {
                                     nullptr, nullptr);
     if (len > 0) {
         std::string utf8(static_cast<size_t>(len - 1), '\0');
-        ::WideCharToMultiByte(CP_UTF8, 0, rawPath, -1, utf8.data(), len,
-                              nullptr, nullptr);
-        outPath = utf8;
+        int written = ::WideCharToMultiByte(CP_UTF8, 0, rawPath, -1,
+                                             utf8.data(), len,
+                                             nullptr, nullptr);
+        if (written > 0)
+            outPath = utf8;
     }
     ::CoTaskMemFree(rawPath);
     return !outPath.empty();
