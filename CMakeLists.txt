@@ -114,8 +114,9 @@ add_library(drawCommandsGLlib
     src/resourceManagement/ResourceManager.cpp
     src/shaderTranslation/ShaderInterpreter.cpp
     src/replayer/ReplayEngine.cpp
+    src/platform/NativeDialog_win32.cpp
 )
-target_link_libraries(drawCommandsGLlib PRIVATE thirdparties)
+target_link_libraries(drawCommandsGLlib PRIVATE thirdparties Ole32)
 target_include_directories(drawCommandsGLlib
     PUBLIC "${CMAKE_SOURCE_DIR}/src"
     PRIVATE "${CMAKE_SOURCE_DIR}/thirdparty/glfw/include"
