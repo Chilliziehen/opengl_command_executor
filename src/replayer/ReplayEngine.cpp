@@ -60,7 +60,13 @@ bool ReplayEngine::reset(std::string& outError) {
     m_cursor = 0;
     m_initialized = true;
     m_lastGlErrors.clear();
-    while (glGetError() != GL_NO_ERROR) {} // drain init errors
+    // Clear the frame-start FBO so stale content from a previous run doesn't
+    // survive a backward seek.  Without this, a jump from a draw command back
+    // to an earlier command (past the frame's first clear) would leave the
+    // proxy default-FBO colour attachment filled with old pixels — the preview
+    // would show geometry that hasn't been drawn yet at the new cursor position.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    while (glGetError() != GL_NO_ERROR) {} // drain init + clear errors
     return true;
 }
 
