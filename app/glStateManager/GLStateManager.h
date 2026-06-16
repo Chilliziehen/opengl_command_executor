@@ -1,4 +1,4 @@
-#include "glStateSnapshot.h"
+#include "GLStateSnapshot.h"
 
 class GLStateManager{   
 public:

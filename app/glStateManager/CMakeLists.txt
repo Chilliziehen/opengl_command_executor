@@ -1,7 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-project(GLStateManager)
-set(CMAKE_CXX_STANDARD 20)
-
 add_library(GLStateManager STATIC
     glStateSnapshot/GLStateSnapshot.h
     GLStateManager.h
@@ -11,7 +7,7 @@ add_library(GLStateManager STATIC
     GLStateManager.cpp
 )
 
-add_dependencies(GLStateManager thirdparties)
+target_link_libraries(GLStateManager PUBLIC thirdparties)
 
 target_include_directories(GLStateManager PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/glStateSnapshot"

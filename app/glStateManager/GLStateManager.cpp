@@ -3,6 +3,38 @@
 // 把这一行换成对应头文件即可（确保在包含前 loader 已初始化）。
 #include <glad/gl.h>
 
+// ---- GL 4.x 常量补丁 ----
+// 当前 glad 基于 GL 3.3 compatibility；以下 GL 4.1 / 4.3 常量不在其中，
+// 但对应的查询函数（glGetIntegeri_v 等）已由 glad 声明，运行时由驱动实现。
+// 常量均为既定 GLenum 值，手动定义仅用于编译通过，不会改变运行时行为。
+#ifndef GL_PROGRAM_PIPELINE_BINDING
+#define GL_PROGRAM_PIPELINE_BINDING   0x825A
+#endif
+#ifndef GL_VERTEX_ATTRIB_BINDING
+#define GL_VERTEX_ATTRIB_BINDING      0x82D4
+#endif
+#ifndef GL_VERTEX_ATTRIB_RELATIVE_OFFSET
+#define GL_VERTEX_ATTRIB_RELATIVE_OFFSET 0x82D5
+#endif
+#ifndef GL_VERTEX_BINDING_DIVISOR
+#define GL_VERTEX_BINDING_DIVISOR     0x82D6
+#endif
+#ifndef GL_VERTEX_BINDING_OFFSET
+#define GL_VERTEX_BINDING_OFFSET      0x82D7
+#endif
+#ifndef GL_VERTEX_BINDING_STRIDE
+#define GL_VERTEX_BINDING_STRIDE      0x82D8
+#endif
+#ifndef GL_MAX_VERTEX_ATTRIB_BINDINGS
+#define GL_MAX_VERTEX_ATTRIB_BINDINGS 0x82DA
+#endif
+#ifndef GL_VERTEX_BINDING_BUFFER
+#define GL_VERTEX_BINDING_BUFFER      0x8F4F
+#endif
+#ifndef GL_VERTEX_ATTRIB_ARRAY_LONG
+#define GL_VERTEX_ATTRIB_ARRAY_LONG   0x874E
+#endif
+
 #include "GLStateManager.h"
 
 #include <algorithm> // std::min
@@ -113,7 +145,7 @@ VertexInputState captureVertexInput() {
             glGetVertexAttribiv((GLuint)i, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED,&v); 
             a.m_normalized = (v != 0);
 
-            glGetVertexAttribiv((GLuint)i, GL_VERTEX_ATTRIBUTE_RELATIVE_,&v); 
+            glGetVertexAttribiv((GLuint)i, GL_VERTEX_ATTRIB_RELATIVE_OFFSET, &v);
             a.m_relativeOffset = static_cast<uint32_t>(v);
 
             glGetVertexAttribiv((GLuint)i, GL_VERTEX_ATTRIB_BINDING,               &v); 
@@ -121,7 +153,7 @@ VertexInputState captureVertexInput() {
 
             GLint isInt = 0, isLong = 0;
             glGetVertexAttribiv((GLuint)i, GL_VERTEX_ATTRIB_ARRAY_INTEGER, &isInt);
-            glGetVertexAttribiv((GLuint)i, GL_VERTEX_ATTRIBUTE_ARRAY_LONG,    &isLong);
+            glGetVertexAttribiv((GLuint)i, GL_VERTEX_ATTRIB_ARRAY_LONG,    &isLong);
             a.m_formatKind = isLong ? AttribFormatKind::Long
                            : (isInt ? AttribFormatKind::Int : AttribFormatKind::Float);
         }
