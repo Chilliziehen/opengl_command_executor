@@ -26,8 +26,11 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "replayer/ReplayEngine.h"
 #include "resourceManagement/ResourceAllocator.h"
@@ -177,86 +180,119 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        // ---- Controls ----
-        ImGui::Begin("Replay Controls");
+        // ---- fixed (non-floating) docked layout, pinned to the viewport ----
+        const ImGuiViewport *vp = ImGui::GetMainViewport();
+        const ImVec2 org = vp->WorkPos;
+        const ImVec2 vsz = vp->WorkSize;
+        const float topH = 96.0f;   // control bar height
+        const float leftW = 380.0f; // event browser width
+        const float logH = 150.0f;  // GL-error log height
+        const ImGuiWindowFlags panelFlags =
+            ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoSavedSettings;
+
+        // -- Top: control bar (full width) --
+        ImGui::SetNextWindowPos(org);
+        ImGui::SetNextWindowSize(ImVec2(vsz.x, topH));
+        ImGui::Begin("Replay Controls", nullptr, panelFlags);
         if (!loaded) {
             ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "Load failed:");
             ImGui::TextWrapped("%s", err.c_str());
         } else {
             size_t cur = g_engine.cursor();
             size_t cnt = g_engine.commandCount();
-            ImGui::Text("Capture: %s", g_engine.captureDirectory().c_str());
-            ImGui::Text("Command %zu / %zu", cur, cnt);
-
-            if (ImGui::Button("|<")) seek(0);
+            if (ImGui::Button("|< First")) seek(0);
             ImGui::SameLine();
-            if (ImGui::Button("<")) { std::string e; g_engine.stepBackward(e); updatePreview(); }
+            if (ImGui::Button("< Step")) { std::string e; g_engine.stepBackward(e); updatePreview(); }
             ImGui::SameLine();
-            if (ImGui::Button(">")) { g_engine.stepForward(); updatePreview(); }
+            if (ImGui::Button("Step >")) { g_engine.stepForward(); updatePreview(); }
             ImGui::SameLine();
-            if (ImGui::Button(">|")) seek(cnt);
+            if (ImGui::Button("Last >|")) seek(cnt);
             ImGui::SameLine();
             ImGui::Checkbox("Play", &playing);
-
+            ImGui::SameLine();
+            ImGui::Text("   Event %zu / %zu", cur, cnt);
+            if (cur > 0) {
+                ImGui::SameLine();
+                ImGui::Text("  |  #%u %s", g_engine.commandEventId(cur - 1),
+                            g_engine.commandName(cur - 1).c_str());
+            }
             int sliderVal = static_cast<int>(cur);
+            ImGui::SetNextItemWidth(vsz.x - 24.0f);
             if (ImGui::SliderInt("##seek", &sliderVal, 0, static_cast<int>(cnt)))
                 seek(static_cast<size_t>(sliderVal));
+        }
+        ImGui::End();
 
-            if (cur > 0) {
-                ImGui::Separator();
-                ImGui::Text("Last: #%u %s",
-                            g_engine.commandEventId(cur - 1),
-                            g_engine.commandName(cur - 1).c_str());
+        // -- Left: Event Browser (clickable EID / Action table) --
+        ImGui::SetNextWindowPos(ImVec2(org.x, org.y + topH));
+        ImGui::SetNextWindowSize(ImVec2(leftW, vsz.y - topH));
+        ImGui::Begin("Event Browser", nullptr, panelFlags);
+        if (loaded) {
+            static size_t prevCursor = static_cast<size_t>(-1);
+            size_t cur = g_engine.cursor();
+            bool cursorChanged = (cur != prevCursor);
+            prevCursor = cur;
+            if (ImGui::BeginTable("events", 2,
+                    ImGuiTableFlags_ScrollY | ImGuiTableFlags_RowBg |
+                    ImGuiTableFlags_BordersInnerV)) {
+                ImGui::TableSetupScrollFreeze(0, 1);
+                ImGui::TableSetupColumn("EID", ImGuiTableColumnFlags_WidthFixed, 56.0f);
+                ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableHeadersRow();
+                for (size_t i = 0; i < g_engine.commandCount(); ++i) {
+                    ImGui::TableNextRow();
+                    bool isCurrent = (i + 1 == cur);
+                    ImGui::TableSetColumnIndex(0);
+                    char eid[32];
+                    std::snprintf(eid, sizeof(eid), "%u##ev%zu",
+                                  g_engine.commandEventId(i), i);
+                    if (ImGui::Selectable(eid, isCurrent,
+                            ImGuiSelectableFlags_SpanAllColumns))
+                        seek(i + 1); // execute through command i
+                    ImGui::TableSetColumnIndex(1);
+                    ImGui::TextUnformatted(g_engine.commandName(i).c_str());
+                    if (isCurrent && cursorChanged)
+                        ImGui::SetScrollHereY(0.5f);
+                }
+                ImGui::EndTable();
             }
         }
         ImGui::End();
 
-        // ---- Command browser ----
+        // -- Right top: Render-target preview --
+        ImGui::SetNextWindowPos(ImVec2(org.x + leftW, org.y + topH));
+        ImGui::SetNextWindowSize(ImVec2(vsz.x - leftW, vsz.y - topH - logH));
+        ImGui::Begin("Render Target", nullptr, panelFlags);
         if (loaded) {
-            ImGui::Begin("Commands");
-            size_t cur = g_engine.cursor();
-            ImGui::BeginChild("cmdlist");
-            for (size_t i = 0; i < g_engine.commandCount(); ++i) {
-                bool isCurrent = (i + 1 == cur);
-                char label[160];
-                std::snprintf(label, sizeof(label), "%4zu  #%u  %s", i,
-                              g_engine.commandEventId(i),
-                              g_engine.commandName(i).c_str());
-                if (ImGui::Selectable(label, isCurrent))
-                    seek(i + 1); // execute through command i
-                if (isCurrent && ImGui::IsWindowAppearing())
-                    ImGui::SetScrollHereY();
-            }
-            ImGui::EndChild();
-            ImGui::End();
-        }
-
-        // ---- Render-target preview ----
-        if (loaded) {
-            ImGui::Begin("Render Target");
             GLuint fbo = g_engine.currentDrawFramebuffer();
-            ImGui::Text("Bound draw FBO: %u   (%dx%d)", fbo, g_previewW, g_previewH);
+            ImGui::Text("Bound draw FBO: %u    preview %dx%d", fbo, g_previewW, g_previewH);
             ImVec2 avail = ImGui::GetContentRegionAvail();
             float aspect = g_previewH > 0 ? (float)g_previewW / (float)g_previewH : 1.0f;
             float w = avail.x;
             float h = w / aspect;
             if (h > avail.y) { h = avail.y; w = h * aspect; }
+            float padx = (avail.x - w) * 0.5f;
+            if (padx > 0) ImGui::SetCursorPosX(ImGui::GetCursorPosX() + padx);
             // Flip V: GL texture origin is bottom-left, ImGui is top-left.
             ImGui::Image((ImTextureID)(intptr_t)g_previewTex, ImVec2(w, h),
                          ImVec2(0, 1), ImVec2(1, 0));
-            ImGui::End();
         }
+        ImGui::End();
 
-        // ---- GL error log ----
+        // -- Right bottom: GL error log --
+        ImGui::SetNextWindowPos(ImVec2(org.x + leftW, org.y + vsz.y - logH));
+        ImGui::SetNextWindowSize(ImVec2(vsz.x - leftW, logH));
+        ImGui::Begin("GL Errors (last step)", nullptr, panelFlags);
         if (loaded) {
-            ImGui::Begin("GL Errors (last step)");
             const std::string &errors = g_engine.lastGlErrors();
             if (errors.empty())
                 ImGui::TextColored(ImVec4(0.5f, 1, 0.5f, 1), "No GL errors.");
             else
                 ImGui::TextColored(ImVec4(1, 0.5f, 0.5f, 1), "%s", errors.c_str());
-            ImGui::End();
         }
+        ImGui::End();
 
         // ---- present ----
         ImGui::Render();
@@ -268,6 +304,29 @@ int main(int argc, char *argv[]) {
         glClearColor(0.06f, 0.06f, 0.07f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+        // Headless screenshot for verification: GUIDUMP=<path.ppm> renders a few
+        // frames (so the UI settles) then writes the window framebuffer and exits.
+        if (const char *dumpPath = std::getenv("GUIDUMP")) {
+            static int frameCount = 0;
+            if (++frameCount >= 4) {
+                std::vector<unsigned char> px(static_cast<size_t>(dw) * dh * 3);
+                glReadBuffer(GL_BACK);
+                glReadPixels(0, 0, dw, dh, GL_RGB, GL_UNSIGNED_BYTE, px.data());
+                if (FILE *fp = std::fopen(dumpPath, "wb")) {
+                    std::fprintf(fp, "P6\n%d %d\n255\n", dw, dh);
+                    std::vector<unsigned char> row(static_cast<size_t>(dw) * 3);
+                    for (int y = dh - 1; y >= 0; --y) {
+                        std::fwrite(px.data() + static_cast<size_t>(y) * dw * 3, 1,
+                                    row.size(), fp);
+                    }
+                    std::fclose(fp);
+                    std::cout << "Wrote GUI screenshot to " << dumpPath << std::endl;
+                }
+                glfwSetWindowShouldClose(g_window, true);
+            }
+        }
+
         glfwSwapBuffers(g_window);
     }
 
