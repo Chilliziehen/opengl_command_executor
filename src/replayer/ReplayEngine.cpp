@@ -32,6 +32,18 @@ bool ReplayEngine::load(const std::string& captureDirectory, std::string& outErr
     return true;
 }
 
+void ReplayEngine::unload() {
+    if (m_initialized) {
+        ResourceAllocator::deleteAllResources(m_capture);
+        m_initialized = false;
+    }
+    m_capture.clear();
+    m_loaded = false;
+    m_cursor = 0;
+    m_captureDirectory.clear();
+    m_lastGlErrors.clear();
+}
+
 bool ReplayEngine::reset(std::string& outError) {
     if (!m_loaded) {
         outError = "no capture loaded";

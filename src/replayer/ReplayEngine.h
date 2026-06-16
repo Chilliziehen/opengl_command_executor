@@ -22,6 +22,10 @@ public:
     /// Load a capture directory (CPU only; safe before/without a GL context).
     bool load(const std::string& captureDirectory, std::string& outError);
 
+    /// Release all resources and return to the "no capture loaded" state.
+    /// Safe to call multiple times.
+    void unload();
+
     /// (Re)initialize GL to the captured frame-start state and move the cursor
     /// to 0 (no commands executed yet). Requires a current GL context.
     bool reset(std::string& outError);
