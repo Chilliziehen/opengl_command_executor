@@ -55,7 +55,17 @@ add_library(nlohmann_json INTERFACE)
 target_include_directories(nlohmann_json INTERFACE "${JSON_HEADER_DIR}")
 add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
 
+# Dear ImGui — GUI for the per-command replayer (no CMakeLists of its own, so we
+# just fetch the sources and compile them into a static lib below).
+FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.90.9
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/thirdparty/imgui"
+)
+
 FetchContent_MakeAvailable(glfw glm)
+FetchContent_MakeAvailable(imgui)
 add_library(glad INTERFACE)
 
 # 顺着路径，让项目能搜到第三方库的头文件
@@ -70,6 +80,22 @@ target_link_libraries(thirdparties INTERFACE
     nlohmann_json::nlohmann_json
 )
 
+# ---- Dear ImGui static lib (core + GLFW/OpenGL3 backends) ----
+add_library(imgui STATIC
+    "${imgui_SOURCE_DIR}/imgui.cpp"
+    "${imgui_SOURCE_DIR}/imgui_draw.cpp"
+    "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+    "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp"
+)
+target_include_directories(imgui PUBLIC
+    "${imgui_SOURCE_DIR}"
+    "${imgui_SOURCE_DIR}/backends"
+    "${CMAKE_SOURCE_DIR}/thirdparty/glfw/include"
+)
+target_link_libraries(imgui PUBLIC glfw)
+
 add_library(drawCommandsGLlib
     src/core/GladImplementation.cpp
     src/drawResources/Texture.cpp
@@ -79,6 +105,7 @@ add_library(drawCommandsGLlib
     src/resourceManagement/ResourceAllocator.cpp
     src/resourceManagement/ResourceManager.cpp
     src/shaderTranslation/ShaderInterpreter.cpp
+    src/replayer/ReplayEngine.cpp
 )
 target_link_libraries(drawCommandsGLlib PRIVATE thirdparties)
 target_include_directories(drawCommandsGLlib
@@ -108,5 +135,14 @@ add_executable(testShaderTranslate
 )
 target_link_libraries(testShaderTranslate PRIVATE drawCommandsGLlib)
 target_compile_definitions(testShaderTranslate PRIVATE
+    PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ---- GUI per-command replayer ----
+add_executable(guiReplayer
+    app/guiReplayer.cpp
+)
+target_link_libraries(guiReplayer PRIVATE drawCommandsGLlib thirdparties imgui)
+target_compile_definitions(guiReplayer PRIVATE
     PROJECT_ROOT_DIR="${CMAKE_SOURCE_DIR}"
 )
