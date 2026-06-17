@@ -1,0 +1,63 @@
+[
+  {
+    "id": 1,
+    "label": "Program#1",
+    "attachedShaderIds": [
+      1,
+      2
+    ],
+    "linked": true
+  },
+  {
+    "id": 2,
+    "label": "Program#2",
+    "attachedShaderIds": [
+      3,
+      4
+    ],
+    "linked": true
+  },
+  {
+    "id": 3,
+    "label": "Program#3",
+    "attachedShaderIds": [
+      5,
+      6
+    ],
+    "linked": true,
+    "uniformBlockBindings": {
+      "0": 0
+    }
+  },
+  {
+    "id": 4,
+    "label": "Program#4",
+    "attachedShaderIds": [
+      7,
+      8
+    ],
+    "linked": true,
+    "uniformBlockBindings": {
+      "0": 0,
+      "1": 1
+    }
+  },
+  {
+    "id": 5,
+    "label": "Program#5",
+    "attachedShaderIds": [
+      9,
+      10
+    ],
+    "linked": true
+  },
+  {
+    "id": 6,
+    "label": "Program#6",
+    "attachedShaderIds": [
+      11,
+      12
+    ],
+    "linked": true
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "id": 5,
+  "label": "Buffer#5",
+  "target": 34962,
+  "bufferType": "VBO",
+  "usage": 35044,
+  "byteLength": 192,
+  "capturedByteLength": 192,
+  "hasBaselineBytes": true,
+  "sourceKind": "CopyBufferSubData@4MBcap",
+  "dataPath": "Buffer#5.bin"
+}

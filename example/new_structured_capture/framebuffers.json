@@ -1,0 +1,50 @@
+[
+  {
+    "id": 1,
+    "label": "Framebuffer#1",
+    "attachments": [
+      {
+        "attachment": 36064,
+        "textureId": 2,
+        "level": 0,
+        "textarget": 3553
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "label": "Framebuffer#2",
+    "attachments": [
+      {
+        "attachment": 36096,
+        "textureId": 4,
+        "level": 0,
+        "textarget": 3553
+      },
+      {
+        "attachment": 36128,
+        "textureId": 0,
+        "level": 0,
+        "textarget": 3553
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "label": "Framebuffer#3",
+    "attachments": [
+      {
+        "attachment": 36064,
+        "textureId": 6,
+        "level": 0,
+        "textarget": 3553
+      },
+      {
+        "attachment": 33306,
+        "textureId": 8,
+        "level": 0,
+        "textarget": 3553
+      }
+    ]
+  }
+]

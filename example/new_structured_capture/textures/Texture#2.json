@@ -1,0 +1,33 @@
+{
+  "id": 2,
+  "label": "Texture#2",
+  "target": 3553,
+  "width": 2832,
+  "height": 1281,
+  "depth": 0,
+  "internalFormat": 35907,
+  "format": 6408,
+  "pixelType": 5121,
+  "sourceKind": "texStorage2D",
+  "compressed": false,
+  "levels": 1,
+  "parameters": {
+    "10240": 9729,
+    "10241": 9729,
+    "10242": 33071,
+    "10243": 33071,
+    "32882": 33071,
+    "33084": 0,
+    "33085": 0,
+    "34046": 1
+  },
+  "deleted": false,
+  "mipsGenerated": false,
+  "captureMethod": "FBOReadPixels",
+  "byteLength": 906240,
+  "capturedWidth": 708,
+  "capturedHeight": 320,
+  "capturedByteLength": 906240,
+  "hasBaselineBytes": true,
+  "dataPath": "Texture#2.bin"
+}

@@ -1,0 +1,3700 @@
+[
+  {
+    "eventId": 1,
+    "name": "bindFramebuffer",
+    "args": [
+      36009,
+      2
+    ],
+    "framebufferId": 2,
+    "target": 36009
+  },
+  {
+    "eventId": 2,
+    "name": "drawBuffers",
+    "args": [
+      [
+        36064
+      ]
+    ]
+  },
+  {
+    "eventId": 3,
+    "name": "viewport",
+    "args": [
+      0,
+      0,
+      4096,
+      4096
+    ]
+  },
+  {
+    "eventId": 4,
+    "name": "depthMask",
+    "args": [
+      true
+    ]
+  },
+  {
+    "eventId": 5,
+    "name": "clear",
+    "args": [
+      16640
+    ],
+    "mask": 16640,
+    "framebufferId": 2
+  },
+  {
+    "eventId": 6,
+    "name": "viewport",
+    "args": [
+      0,
+      0,
+      2048,
+      2048
+    ]
+  },
+  {
+    "eventId": 7,
+    "name": "viewport",
+    "args": [
+      2048,
+      0,
+      2048,
+      2048
+    ]
+  },
+  {
+    "eventId": 8,
+    "name": "colorMask",
+    "args": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  {
+    "eventId": 9,
+    "name": "depthFunc",
+    "args": [
+      515
+    ]
+  },
+  {
+    "eventId": 10,
+    "name": "cullFace",
+    "args": [
+      1029
+    ]
+  },
+  {
+    "eventId": 11,
+    "name": "enable",
+    "args": [
+      2884
+    ]
+  },
+  {
+    "eventId": 12,
+    "name": "polygonOffset",
+    "args": [
+      2.5,
+      1
+    ]
+  },
+  {
+    "eventId": 13,
+    "name": "enable",
+    "args": [
+      32823
+    ]
+  },
+  {
+    "eventId": 14,
+    "name": "bindBuffer",
+    "args": [
+      36663,
+      63
+    ],
+    "bufferId": 63,
+    "target": 36663
+  },
+  {
+    "eventId": 15,
+    "name": "bufferSubData",
+    "args": [
+      36663,
+      0,
+      {
+        "type": "UploadSkipped",
+        "byteLength": 268435456,
+        "sourceKind": "Uint8Array"
+      }
+    ],
+    "bufferId": 63,
+    "target": 36663
+  },
+  {
+    "eventId": 16,
+    "name": "useProgram",
+    "args": [],
+    "programId": 3
+  },
+  {
+    "eventId": 17,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.01755494624376297,
+          -0.007764129433780909,
+          -0.005843330640345812,
+          0,
+          -3.487854172146143e-10,
+          0.01302975881844759,
+          -0.013927618972957134,
+          0,
+          0.010135351680219173,
+          0.013447868637740612,
+          0.010120945982635021,
+          0,
+          -0.2529296875,
+          -0.34960946440696716,
+          -0.2213570475578308,
+          1
+        ]
+      }
+    ],
+    "programId": 3,
+    "uniformName": "hlslcc_mtx4x4unity_MatrixVP[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 18,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          -0.12044012546539307,
+          -0.12044012546539307,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 3,
+    "uniformName": "_ShadowBias[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 19,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.32139378786087036,
+          0.7660444378852844,
+          -0.5566704273223877
+        ]
+      }
+    ],
+    "programId": 3,
+    "uniformName": "_LightDirection[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 20,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          -0.05216984078288078,
+          -0.05216984078288078,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 3,
+    "uniformName": "_ShadowBias",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 21,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.04052762687206268,
+          -0.017924392595887184,
+          -0.01317650731652975,
+          0,
+          -8.052115640921897e-10,
+          0.030080707743763924,
+          -0.03140629827976227,
+          0,
+          0.023398634046316147,
+          0.031045962125062943,
+          0.022822383791208267,
+          0,
+          -0.12109372764825821,
+          -0.19042977690696716,
+          -0.04580503702163696,
+          1
+        ]
+      }
+    ],
+    "programId": 3,
+    "uniformName": "hlslcc_mtx4x4unity_MatrixVP[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 22,
+    "name": "bindBufferBase",
+    "args": [
+      35345,
+      0,
+      69
+    ],
+    "bufferId": 69,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 23,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      63,
+      0,
+      720
+    ],
+    "bufferId": 63,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 24,
+    "name": "bindBuffer",
+    "args": [
+      34962,
+      61
+    ],
+    "bufferId": 61,
+    "target": 34962
+  },
+  {
+    "eventId": 25,
+    "name": "vertexAttribPointer",
+    "args": [
+      0,
+      3,
+      5126,
+      false,
+      56,
+      0
+    ],
+    "bufferId": 61,
+    "attribName": "in_POSITION0"
+  },
+  {
+    "eventId": 26,
+    "name": "enableVertexAttribArray",
+    "args": [
+      1
+    ]
+  },
+  {
+    "eventId": 27,
+    "name": "vertexAttribPointer",
+    "args": [
+      1,
+      3,
+      5126,
+      false,
+      56,
+      12
+    ],
+    "bufferId": 61,
+    "attribName": "in_NORMAL0"
+  },
+  {
+    "eventId": 28,
+    "name": "bindBuffer",
+    "args": [
+      34963,
+      62
+    ],
+    "bufferId": 62,
+    "target": 34963
+  },
+  {
+    "eventId": 29,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 30,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      63,
+      256,
+      720
+    ],
+    "bufferId": 63,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 31,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 32,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      63,
+      512,
+      720
+    ],
+    "bufferId": 63,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 33,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 34,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      63,
+      768,
+      720
+    ],
+    "bufferId": 63,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 35,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 36,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      63,
+      1024,
+      720
+    ],
+    "bufferId": 63,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 37,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 38,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      63,
+      1280,
+      720
+    ],
+    "bufferId": 63,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 39,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 40,
+    "name": "viewport",
+    "args": [
+      0,
+      2048,
+      2048,
+      2048
+    ]
+  },
+  {
+    "eventId": 41,
+    "name": "bindBuffer",
+    "args": [
+      36663,
+      60
+    ],
+    "bufferId": 60,
+    "target": 36663
+  },
+  {
+    "eventId": 42,
+    "name": "bufferSubData",
+    "args": [
+      36663,
+      0,
+      {
+        "type": "UploadSkipped",
+        "byteLength": 268435456,
+        "sourceKind": "Uint8Array"
+      }
+    ],
+    "bufferId": 60,
+    "target": 36663
+  },
+  {
+    "eventId": 43,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          -0.12044012546539307,
+          -0.12044012546539307,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 3,
+    "uniformName": "_ShadowBias",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 44,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.01755494624376297,
+          -0.007764129433780909,
+          -0.005843330640345812,
+          0,
+          -3.487854172146143e-10,
+          0.01302975881844759,
+          -0.013927618972957134,
+          0,
+          0.010135351680219173,
+          0.013447868637740612,
+          0.010120945982635021,
+          0,
+          -0.2529296875,
+          -0.34960946440696716,
+          -0.2213570475578308,
+          1
+        ]
+      }
+    ],
+    "programId": 3,
+    "uniformName": "hlslcc_mtx4x4unity_MatrixVP[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 45,
+    "name": "bindBufferBase",
+    "args": [
+      35345,
+      0,
+      69
+    ],
+    "bufferId": 69,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 46,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      60,
+      0,
+      720
+    ],
+    "bufferId": 60,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 47,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 48,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      60,
+      256,
+      720
+    ],
+    "bufferId": 60,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 49,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 50,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      60,
+      512,
+      720
+    ],
+    "bufferId": 60,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 51,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 52,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      60,
+      768,
+      720
+    ],
+    "bufferId": 60,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 53,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 54,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      60,
+      1024,
+      720
+    ],
+    "bufferId": 60,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 55,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 56,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      60,
+      1280,
+      720
+    ],
+    "bufferId": 60,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 57,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 2
+  },
+  {
+    "eventId": 58,
+    "name": "viewport",
+    "args": [
+      2048,
+      2048,
+      2048,
+      2048
+    ]
+  },
+  {
+    "eventId": 59,
+    "name": "bindFramebuffer",
+    "args": [
+      36009,
+      3
+    ],
+    "framebufferId": 3,
+    "target": 36009
+  },
+  {
+    "eventId": 60,
+    "name": "drawBuffers",
+    "args": [
+      [
+        36064
+      ]
+    ]
+  },
+  {
+    "eventId": 61,
+    "name": "viewport",
+    "args": [
+      0,
+      0,
+      2832,
+      1281
+    ]
+  },
+  {
+    "eventId": 62,
+    "name": "clear",
+    "args": [
+      1280
+    ],
+    "mask": 1280,
+    "framebufferId": 3
+  },
+  {
+    "eventId": 63,
+    "name": "bindTexture",
+    "args": [
+      34067
+    ],
+    "target": 34067,
+    "textureId": 9,
+    "unit": 0
+  },
+  {
+    "eventId": 64,
+    "name": "activeTexture",
+    "args": [
+      33985
+    ],
+    "unit": 1
+  },
+  {
+    "eventId": 65,
+    "name": "bindTexture",
+    "args": [
+      34067
+    ],
+    "target": 34067,
+    "textureId": 10,
+    "unit": 1
+  },
+  {
+    "eventId": 66,
+    "name": "activeTexture",
+    "args": [
+      33986
+    ],
+    "unit": 2
+  },
+  {
+    "eventId": 67,
+    "name": "bindTexture",
+    "args": [
+      34067
+    ],
+    "target": 34067,
+    "textureId": 11,
+    "unit": 2
+  },
+  {
+    "eventId": 68,
+    "name": "activeTexture",
+    "args": [
+      33987
+    ],
+    "unit": 3
+  },
+  {
+    "eventId": 69,
+    "name": "activeTexture",
+    "args": [
+      33989
+    ],
+    "unit": 5
+  },
+  {
+    "eventId": 70,
+    "name": "activeTexture",
+    "args": [
+      33991
+    ],
+    "unit": 7
+  },
+  {
+    "eventId": 71,
+    "name": "colorMask",
+    "args": [
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  {
+    "eventId": 72,
+    "name": "polygonOffset",
+    "args": [
+      0,
+      0
+    ]
+  },
+  {
+    "eventId": 73,
+    "name": "disable",
+    "args": [
+      32823
+    ]
+  },
+  {
+    "eventId": 74,
+    "name": "bindBuffer",
+    "args": [
+      36663,
+      64
+    ],
+    "bufferId": 64,
+    "target": 36663
+  },
+  {
+    "eventId": 75,
+    "name": "bufferSubData",
+    "args": [
+      36663,
+      0,
+      {
+        "type": "UploadSkipped",
+        "byteLength": 268435456,
+        "sourceKind": "Uint8Array"
+      }
+    ],
+    "bufferId": 64,
+    "target": 36663
+  },
+  {
+    "eventId": 76,
+    "name": "useProgram",
+    "args": [],
+    "programId": 4
+  },
+  {
+    "eventId": 77,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.7834594249725342,
+          0,
+          0,
+          0,
+          0,
+          1.7320507764816284,
+          0,
+          0,
+          0,
+          0,
+          1.0006000995635986,
+          1,
+          0,
+          -1.7320507764816284,
+          9.405820846557617,
+          10
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "hlslcc_mtx4x4unity_MatrixVP[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 78,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          4.594793796539307,
+          1,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_GlossyEnvironmentCubeMap_HDR[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 79,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          1
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_GlobalMipBias[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 80,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.32139378786087036,
+          0.7660444378852844,
+          -0.5566704273223877,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_MainLightPosition[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 81,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          0.9046613574028015,
+          0.6724432110786438,
+          1
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_MainLightColor[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 82,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsCount[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 83,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsPosition[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 84,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsColor[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 85,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsAttenuation[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 86,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsSpotDir[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 87,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          1,
+          -10
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_WorldSpaceCameraPos[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 88,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          11.053863525390625,
+          5,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "unity_OrthoParams[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 89,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          -1,
+          -10,
+          1
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "hlslcc_mtx4x4unity_MatrixV[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 90,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.029102740809321404,
+          -0.01287144050002098,
+          -0.017574883997440338,
+          0,
+          -5.782194723025214e-10,
+          0.021600846201181412,
+          -0.04188985750079155,
+          0,
+          0.0168024729937315,
+          0.022293992340564728,
+          0.030440595000982285,
+          0,
+          0.3291015625,
+          0.33349609375,
+          0.7401113510131836,
+          1,
+          0.01013190671801567,
+          -0.004481098148971796,
+          -0.006588253658264875,
+          0,
+          -2.0130289102304744e-10,
+          0.007520176935940981,
+          -0.015703149139881134,
+          0,
+          0.005849658511579037,
+          0.007761490531265736,
+          0.011411191895604134,
+          0,
+          0.7197265625,
+          0.2023925483226776,
+          0.4770974814891815,
+          1,
+          0.0043887365609407425,
+          -0.0019410323584452271,
+          -0.002921665320172906,
+          0,
+          -8.719635430365358e-11,
+          0.0032574397046118975,
+          -0.006963809486478567,
+          0,
+          0.0025338379200547934,
+          0.003361967159435153,
+          0.005060472991317511,
+          0,
+          0.186767578125,
+          0.66259765625,
+          0.3893214762210846,
+          1,
+          0.0020589346531778574,
+          -0.0009106171200983226,
+          -0.001384030096232891,
+          0,
+          -4.090735389317146e-11,
+          0.0015281973173841834,
+          -0.003298845374956727,
+          0,
+          0.0011887262808158994,
+          0.0015772352926433086,
+          0.002397210570052266,
+          0,
+          0.673095703125,
+          0.646484375,
+          0.3525112569332123,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "hlslcc_mtx4x4_MainLightWorldToShadow[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 91,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          1,
+          -4.715353965759277,
+          7.403232097625732
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_CascadeShadowSplitSpheres0[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 92,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          1,
+          5.179539680480957,
+          21.264934539794922
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_CascadeShadowSplitSpheres1[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 93,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          1,
+          25.043724060058594,
+          49.092567443847656
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_CascadeShadowSplitSpheres2[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 94,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          1,
+          64.69769287109375,
+          104.64360046386719
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_CascadeShadowSplitSpheres3[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 95,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          54.80784606933594,
+          452.19744873046875,
+          2410.080078125,
+          10950.283203125
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_CascadeShadowSplitSphereRadii[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 96,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          -0.0001220703125,
+          -0.0001220703125,
+          0.0001220703125,
+          -0.0001220703125
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_MainLightShadowOffset0[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 97,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          -0.0001220703125,
+          0.0001220703125,
+          0.0001220703125,
+          0.0001220703125
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_MainLightShadowOffset1[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 98,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          2,
+          0.0002339180209673941,
+          -4.263155460357666
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_MainLightShadowParams[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 99,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.000244140625,
+          0.000244140625,
+          4096,
+          4096
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_MainLightShadowmapSize[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 100,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalShadowOffset0[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 101,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalShadowOffset1[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 102,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalShadowFadeParams[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 103,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalShadowmapSize[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 104,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalShadowParams[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 105,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "hlslcc_mtx4x4_AdditionalLightsWorldToShadow[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 106,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsPosition[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 107,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsColor[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 108,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsAttenuation[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 109,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalLightsSpotDir[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 110,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1,
+          0,
+          0,
+          0,
+          -1
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "_AdditionalShadowParams[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 111,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.029102740809321404,
+          -0.01287144050002098,
+          -0.017574883997440338,
+          0,
+          -5.782194723025214e-10,
+          0.021600846201181412,
+          -0.04188985750079155,
+          0,
+          0.0168024729937315,
+          0.022293992340564728,
+          0.030440595000982285,
+          0,
+          0.3291015625,
+          0.33349609375,
+          0.7401113510131836,
+          1,
+          0.01013190671801567,
+          -0.004481098148971796,
+          -0.006588253658264875,
+          0,
+          -2.0130289102304744e-10,
+          0.007520176935940981,
+          -0.015703149139881134,
+          0,
+          0.005849658511579037,
+          0.007761490531265736,
+          0.011411191895604134,
+          0,
+          0.7197265625,
+          0.2023925483226776,
+          0.4770974814891815,
+          1,
+          0.0043887365609407425,
+          -0.0019410323584452271,
+          -0.002921665320172906,
+          0,
+          -8.719635430365358e-11,
+          0.0032574397046118975,
+          -0.006963809486478567,
+          0,
+          0.0025338379200547934,
+          0.003361967159435153,
+          0.005060472991317511,
+          0,
+          0.186767578125,
+          0.66259765625,
+          0.3893214762210846,
+          1,
+          0.0020589346531778574,
+          -0.0009106171200983226,
+          -0.001384030096232891,
+          0,
+          -4.090735389317146e-11,
+          0.0015281973173841834,
+          -0.003298845374956727,
+          0,
+          0.0011887262808158994,
+          0.0015772352926433086,
+          0.002397210570052266,
+          0,
+          0.673095703125,
+          0.646484375,
+          0.3525112569332123,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "hlslcc_mtx4x4_MainLightWorldToShadow[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 112,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 4,
+    "uniformName": "hlslcc_mtx4x4_AdditionalLightsWorldToShadow[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 113,
+    "name": "bindBufferBase",
+    "args": [
+      35345,
+      0,
+      69
+    ],
+    "bufferId": 69,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 114,
+    "name": "bindBufferBase",
+    "args": [
+      35345,
+      1,
+      43
+    ],
+    "bufferId": 43,
+    "target": 35345,
+    "index": 1
+  },
+  {
+    "eventId": 115,
+    "name": "activeTexture",
+    "args": [
+      33985
+    ],
+    "unit": 1
+  },
+  {
+    "eventId": 116,
+    "name": "bindTexture",
+    "args": [
+      34067
+    ],
+    "target": 34067,
+    "textureId": 9,
+    "unit": 1
+  },
+  {
+    "eventId": 117,
+    "name": "activeTexture",
+    "args": [
+      33986
+    ],
+    "unit": 2
+  },
+  {
+    "eventId": 118,
+    "name": "bindTexture",
+    "args": [
+      34067
+    ],
+    "target": 34067,
+    "textureId": 9,
+    "unit": 2
+  },
+  {
+    "eventId": 119,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      64,
+      0,
+      720
+    ],
+    "bufferId": 64,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 120,
+    "name": "bindBufferBase",
+    "args": [
+      35345,
+      1,
+      59
+    ],
+    "bufferId": 59,
+    "target": 35345,
+    "index": 1
+  },
+  {
+    "eventId": 121,
+    "name": "activeTexture",
+    "args": [
+      33987
+    ],
+    "unit": 3
+  },
+  {
+    "eventId": 122,
+    "name": "enableVertexAttribArray",
+    "args": [
+      2
+    ]
+  },
+  {
+    "eventId": 123,
+    "name": "vertexAttribPointer",
+    "args": [
+      2,
+      2,
+      5126,
+      false,
+      56,
+      40
+    ],
+    "bufferId": 61,
+    "attribName": "in_TEXCOORD0"
+  },
+  {
+    "eventId": 124,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 3
+  },
+  {
+    "eventId": 125,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      64,
+      512,
+      720
+    ],
+    "bufferId": 64,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 126,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 3
+  },
+  {
+    "eventId": 127,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      64,
+      1024,
+      720
+    ],
+    "bufferId": 64,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 128,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 3
+  },
+  {
+    "eventId": 129,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      64,
+      1536,
+      720
+    ],
+    "bufferId": 64,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 130,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 3
+  },
+  {
+    "eventId": 131,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      64,
+      2048,
+      720
+    ],
+    "bufferId": 64,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 132,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 3
+  },
+  {
+    "eventId": 133,
+    "name": "bindBufferRange",
+    "args": [
+      35345,
+      0,
+      64,
+      2560,
+      720
+    ],
+    "bufferId": 64,
+    "target": 35345,
+    "index": 0
+  },
+  {
+    "eventId": 134,
+    "name": "drawElements",
+    "args": [
+      4,
+      36,
+      5123,
+      0
+    ],
+    "framebufferId": 3
+  },
+  {
+    "eventId": 135,
+    "name": "depthMask",
+    "args": [
+      false
+    ]
+  },
+  {
+    "eventId": 136,
+    "name": "disable",
+    "args": [
+      2884
+    ]
+  },
+  {
+    "eventId": 137,
+    "name": "useProgram",
+    "args": [],
+    "programId": 5
+  },
+  {
+    "eventId": 138,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.32139378786087036,
+          0.7660444378852844,
+          -0.5566704273223877,
+          0
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "_WorldSpaceLightPos0[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 139,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          10000,
+          0,
+          0,
+          0,
+          0,
+          10000,
+          0,
+          0,
+          0,
+          0,
+          10000,
+          0,
+          0,
+          1,
+          -10,
+          1
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "hlslcc_mtx4x4unity_ObjectToWorld[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 140,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.7834594249725342,
+          0,
+          0,
+          0,
+          0,
+          1.7320507764816284,
+          0,
+          0,
+          0,
+          0,
+          0.9999989867210388,
+          1,
+          0,
+          -1.7320507764816284,
+          9.993989944458008,
+          10
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "hlslcc_mtx4x4unity_MatrixVP[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 141,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          0.9046613574028015,
+          0.6724432110786438,
+          1
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "_LightColor0[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 142,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1.2999999523162842
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "_Exposure[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 143,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.1121688261628151,
+          0.09988710284233093,
+          0.09520560503005981
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "_GroundColor[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 144,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.21404114365577698,
+          0.21404114365577698,
+          0.21404114365577698
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "_SkyTint[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 145,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "_AtmosphereThickness[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 146,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0.03999999910593033
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "_SunSize[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 147,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          10000,
+          0,
+          0,
+          0,
+          0,
+          10000,
+          0,
+          0,
+          0,
+          0,
+          10000,
+          0,
+          0,
+          1,
+          -10,
+          1
+        ]
+      }
+    ],
+    "programId": 5,
+    "uniformName": "hlslcc_mtx4x4unity_ObjectToWorld[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 148,
+    "name": "bindBuffer",
+    "args": [
+      34962,
+      65
+    ],
+    "bufferId": 65,
+    "target": 34962
+  },
+  {
+    "eventId": 149,
+    "name": "vertexAttribPointer",
+    "args": [
+      0,
+      3,
+      5126,
+      false,
+      28,
+      0
+    ],
+    "bufferId": 65,
+    "attribName": "in_POSITION0"
+  },
+  {
+    "eventId": 150,
+    "name": "disableVertexAttribArray",
+    "args": [
+      1
+    ]
+  },
+  {
+    "eventId": 151,
+    "name": "disableVertexAttribArray",
+    "args": [
+      2
+    ]
+  },
+  {
+    "eventId": 152,
+    "name": "drawArrays",
+    "args": [
+      4,
+      0,
+      5040
+    ],
+    "framebufferId": 3
+  },
+  {
+    "eventId": 153,
+    "name": "activeTexture",
+    "args": [
+      33984
+    ],
+    "unit": 0
+  },
+  {
+    "eventId": 154,
+    "name": "bindTexture",
+    "args": [
+      3553
+    ],
+    "target": 3553,
+    "textureId": 12,
+    "unit": 0
+  },
+  {
+    "eventId": 155,
+    "name": "depthFunc",
+    "args": [
+      519
+    ]
+  },
+  {
+    "eventId": 156,
+    "name": "bindTexture",
+    "args": [
+      3553
+    ],
+    "target": 3553,
+    "textureId": 6,
+    "unit": 0
+  },
+  {
+    "eventId": 157,
+    "name": "bindFramebuffer",
+    "args": [
+      36009,
+      1
+    ],
+    "framebufferId": 1,
+    "target": 36009
+  },
+  {
+    "eventId": 158,
+    "name": "drawBuffers",
+    "args": [
+      [
+        36064
+      ]
+    ]
+  },
+  {
+    "eventId": 159,
+    "name": "useProgram",
+    "args": [],
+    "programId": 6
+  },
+  {
+    "eventId": 160,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 6,
+    "uniformName": "_BlitScaleBias[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 161,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0
+        ]
+      }
+    ],
+    "programId": 6,
+    "uniformName": "_BlitMipLevel[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 162,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    ],
+    "programId": 6,
+    "uniformName": "_BlitScaleBias",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 163,
+    "name": "drawArrays",
+    "args": [
+      4,
+      0,
+      3
+    ],
+    "framebufferId": 1
+  },
+  {
+    "eventId": 164,
+    "name": "bindFramebuffer",
+    "args": [
+      36009,
+      0
+    ],
+    "framebufferId": 0,
+    "target": 36009
+  },
+  {
+    "eventId": 165,
+    "name": "useProgram",
+    "args": [],
+    "programId": 2
+  },
+  {
+    "eventId": 166,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    ],
+    "programId": 2,
+    "uniformName": "uvOffsetAndScale[0]",
+    "valueOmitted": false,
+    "valueOmittedReason": "",
+    "_snapshot": true
+  },
+  {
+    "eventId": 167,
+    "name": "bindBuffer",
+    "args": [
+      34962,
+      55
+    ],
+    "bufferId": 55,
+    "target": 34962
+  },
+  {
+    "eventId": 168,
+    "name": "vertexAttribPointer",
+    "args": [
+      0,
+      4,
+      5126,
+      false,
+      16,
+      0
+    ],
+    "bufferId": 55,
+    "attribName": "vertex"
+  },
+  {
+    "eventId": 169,
+    "name": "bindBuffer",
+    "args": [
+      34963,
+      56
+    ],
+    "bufferId": 56,
+    "target": 34963
+  },
+  {
+    "eventId": 170,
+    "name": "bindTexture",
+    "args": [
+      3553
+    ],
+    "target": 3553,
+    "textureId": 2,
+    "unit": 0
+  },
+  {
+    "eventId": 171,
+    "name": "uniform1i",
+    "args": [
+      0
+    ],
+    "programId": 2,
+    "uniformName": "tex",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 172,
+    "name": "uniform4fv",
+    "args": [
+      {
+        "type": "Float32Array",
+        "data": [
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    ],
+    "programId": 2,
+    "uniformName": "uvOffsetAndScale",
+    "valueOmitted": false,
+    "valueOmittedReason": ""
+  },
+  {
+    "eventId": 173,
+    "name": "depthFunc",
+    "args": [
+      519
+    ]
+  },
+  {
+    "eventId": 174,
+    "name": "drawElements",
+    "args": [
+      4,
+      3,
+      5123,
+      0
+    ],
+    "framebufferId": 0
+  },
+  {
+    "eventId": 175,
+    "name": "bindFramebuffer",
+    "args": [
+      36160,
+      0
+    ],
+    "framebufferId": 0,
+    "target": 36160
+  }
+]

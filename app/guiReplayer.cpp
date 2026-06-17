@@ -11,11 +11,6 @@
  *
  * Controls: Left/Right = step, Home/End = first/last, Space = play/pause, Esc =
  * exit.
- *
- * Usage: guiReplayer [capture_directory]
- *
- * (Implements the RenderDoc event-browser/stepping concept independently — no
- *  RenderDoc code is used; it is GPL and unsuitable to vendor here.)
  */
 #include <glad/gl.h>
 #define GLAD_GL_IMPLEMENTATION
@@ -25,7 +20,6 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -35,10 +29,9 @@
 
 #include "GLStateManager/GLStateManager.h"
 #include "drawResources/Command.h"
+#include "platform/NativeDialog.h"
 #include "replayer/ReplayEngine.h"
 #include "resourceManagement/ResourceAllocator.h"
-
-#include "platform/NativeDialog.h"
 
 namespace {
 
@@ -48,7 +41,6 @@ int g_canvasW = 0, g_canvasH = 0;
 
 // The capture's "default framebuffer" (FBO id 0) is redirected here — an
 // app-owned offscreen target — so the replay NEVER draws into the GUI window.
-// This is what eliminates the previous feedback/mirror artifact.
 GLuint g_defaultFbo = 0, g_defaultColorTex = 0, g_defaultDepthRbo = 0;
 
 // Persistent preview render target: the current command's output is blitted
@@ -57,8 +49,7 @@ GLuint g_previewFbo = 0, g_previewTex = 0;
 int g_previewW = 0, g_previewH = 0;
 
 // The replay's GL state, captured after each step. Restored before the next
-// step so the preview/ImGui work in between can't corrupt the replay
-// (glStateManager).
+// step so the preview/ImGui work in between can't corrupt the replay.
 GLStateSnapshot g_engineState;
 bool g_haveEngineState = false;
 
@@ -109,25 +100,34 @@ void createPreviewTarget(int w, int h) {
 }
 
 // Blit the framebuffer the current command drew to into the preview texture.
-// The source is always an offscreen FBO (the default FBO is redirected to
-// g_defaultFbo), so this never reads the GUI window — no feedback loop.
+// Depth-only FBOs (e.g. shadow maps) have no colour buffer — the blit is
+// skipped to avoid GL_INVALID_OPERATION and potential GPU-side stalls.
 void updatePreview() {
   GLuint srcFbo = g_engine.currentDrawFramebuffer();
+
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_previewFbo);
   glViewport(0, 0, g_previewW, g_previewH);
   glClearColor(0.12f, 0.12f, 0.14f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
+
   glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFbo);
-  // Off-screen color targets are canvas-sized; depth-only ones have no color
-  // attachment 0, making the blit a no-op (preview stays the clear color).
-  glBlitFramebuffer(0, 0, g_canvasW, g_canvasH, 0, 0, g_previewW, g_previewH,
-                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
+  GLint colourAttachType = GL_NONE;
+  if (srcFbo != 0) {
+    glGetFramebufferAttachmentParameteriv(
+        GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &colourAttachType);
+  } else {
+    colourAttachType = GL_RENDERBUFFER; // default FB always has a back buffer
+  }
+  if (colourAttachType != GL_NONE) {
+    glBlitFramebuffer(0, 0, g_canvasW, g_canvasH, 0, 0, g_previewW, g_previewH,
+                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
+  }
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-  while (glGetError() != GL_NO_ERROR) {
-  } // ignore blit errors (e.g. no color)
+  while (glGetError() != GL_NO_ERROR) {}
 }
 
-// Forward declarations for helpers defined below.
+// Forward declarations.
 void doSeek(size_t target);
 void doStepForward();
 void doStepBackward();
@@ -162,7 +162,6 @@ bool loadCapture(const std::string &path) {
     g_canvasH = 720;
   }
 
-  // Offscreen target standing in for the capture's default framebuffer.
   createColorDepthFbo(g_defaultFbo, g_defaultColorTex, g_defaultDepthRbo,
                       g_canvasW, g_canvasH);
   Command::setDefaultFramebuffer(g_defaultFbo);
@@ -181,9 +180,6 @@ void restoreEngineState() {
     GLStateManager::RestoreState(g_engineState);
 }
 
-// Advance helpers: restore the replay's GL state (undoing any preview/ImGui
-// side effects), run the engine, snapshot the clean state, then refresh the
-// preview.
 void doSeek(size_t target) {
   restoreEngineState();
   std::string err;
@@ -298,7 +294,6 @@ int main(int, char **) {
     ImGui::SetNextWindowSize(ImVec2(vsz.x, topH));
     ImGui::Begin("Replay Controls", nullptr, panelFlags);
 
-    // ---- Load button (always visible) ----
     if (ImGui::Button("Load Capture...")) {
       std::string chosen;
       if (platform::OpenFolderDialog(chosen))
@@ -307,7 +302,6 @@ int main(int, char **) {
     ImGui::SameLine();
 
     if (!g_loaded) {
-      // ---- Idle state: prompt and optional error ----
       if (g_lastLoadError.empty()) {
         ImGui::TextColored(ImVec4(1, 1, 0.5f, 1),
                            "No capture loaded.  Click \"Load Capture...\" to "
@@ -317,7 +311,6 @@ int main(int, char **) {
                            g_lastLoadError.c_str());
       }
     } else {
-      // ---- Loaded state: replay controls ----
       ImGui::Text("Path: %s", g_capturePath.c_str());
       size_t cur = g_engine.cursor();
       size_t cnt = g_engine.commandCount();
@@ -348,7 +341,7 @@ int main(int, char **) {
     }
     ImGui::End();
 
-    // -- Left top: Event Browser (only when loaded) --
+    // -- Left top: Event Browser --
     ImGui::SetNextWindowPos(ImVec2(org.x, org.y + topH));
     ImGui::SetNextWindowSize(ImVec2(leftW, vsz.y - topH - pipeH));
     ImGui::Begin("Event Browser", nullptr, panelFlags);
@@ -464,7 +457,7 @@ int main(int, char **) {
     }
     ImGui::End();
 
-    // ---- present ----
+    // ---- render to window ----
     ImGui::Render();
     int dw, dh;
     glfwGetFramebufferSize(g_window, &dw, &dh);

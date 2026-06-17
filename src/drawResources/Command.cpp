@@ -12,23 +12,27 @@ std::string Command::s_captureDirectory;
 // ---- depth-texture registry (for per-draw sampler fixup) ----
 static std::unordered_set<uint32_t> s_depthTextureHandles;
 void Command::clearDepthTextureRegistry() { s_depthTextureHandles.clear(); }
-void Command::registerDepthTexture(uint32_t glHandle) { s_depthTextureHandles.insert(glHandle); }
+void Command::registerDepthTexture(uint32_t glHandle) {
+  s_depthTextureHandles.insert(glHandle);
+}
 bool Command::isDepthTexture(uint32_t glHandle) {
   return s_depthTextureHandles.find(glHandle) != s_depthTextureHandles.end();
 }
 
 // ---- default-framebuffer override (FBO id 0 -> this handle) ----
 static uint32_t s_defaultFramebuffer = 0;
-void Command::setDefaultFramebuffer(uint32_t glHandle) { s_defaultFramebuffer = glHandle; }
+void Command::setDefaultFramebuffer(uint32_t glHandle) {
+  s_defaultFramebuffer = glHandle;
+}
 uint32_t Command::defaultFramebuffer() { return s_defaultFramebuffer; }
 
 // Per-draw sampler fixup. WebGL sets sampler→unit via init-time glUniform1i
 // calls that aren't in the frame capture, so samplers default to unit 0. If the
 // texture currently bound at a sampler's unit doesn't match the sampler's kind
-// (e.g. a sampler2D pointing at a unit that holds a cube map → reads 0 → black),
-// repoint it to a unit whose currently-bound texture matches. Only fixes
-// mismatched samplers, so correctly-defaulted ones (e.g. fullscreen passes that
-// bind their texture to unit 0) are left untouched.
+// (e.g. a sampler2D pointing at a unit that holds a cube map → reads 0 →
+// black), repoint it to a unit whose currently-bound texture matches. Only
+// fixes mismatched samplers, so correctly-defaulted ones (e.g. fullscreen
+// passes that bind their texture to unit 0) are left untouched.
 static void fixupSamplerBindings() {
   GLint program = 0;
   glGetIntegerv(GL_CURRENT_PROGRAM, &program);
@@ -51,13 +55,20 @@ static void fixupSamplerBindings() {
     char name[128] = {0};
     GLsizei nameLen = 0, arraySize = 0;
     GLenum type = 0;
-    glGetActiveUniform(program, i, sizeof(name), &nameLen, &arraySize, &type, name);
+    glGetActiveUniform(program, i, sizeof(name), &nameLen, &arraySize, &type,
+                       name);
     bool wantCube = false, wantDepth = false;
     switch (type) {
-    case GL_SAMPLER_2D:        break;
-    case GL_SAMPLER_2D_SHADOW: wantDepth = true; break;
-    case GL_SAMPLER_CUBE:      wantCube = true; break;
-    default: continue;
+    case GL_SAMPLER_2D:
+      break;
+    case GL_SAMPLER_2D_SHADOW:
+      wantDepth = true;
+      break;
+    case GL_SAMPLER_CUBE:
+      wantCube = true;
+      break;
+    default:
+      continue;
     }
     std::string baseName(name);
     size_t bracket = baseName.find('[');
@@ -73,7 +84,8 @@ static void fixupSamplerBindings() {
       GLuint h = boundAt(unit, GL_TEXTURE_BINDING_2D);
       if (h == 0)
         return false;
-      return wantDepth ? Command::isDepthTexture(h) : !Command::isDepthTexture(h);
+      return wantDepth ? Command::isDepthTexture(h)
+                       : !Command::isDepthTexture(h);
     };
 
     GLint currentUnit = 0;
@@ -176,7 +188,7 @@ ColorMaskCommand::ColorMaskCommand(uint32_t eventId, bool red, bool green,
     : Command(eventId, "colorMask"), m_red(red), m_green(green), m_blue(blue),
       m_alpha(alpha) {}
 void ColorMaskCommand::execute() {
-  glColorMask(m_red, m_green, m_blue, m_alpha);
+  // glColorMask(m_red, m_green, m_blue, m_alpha);
 }
 
 LineWidthCommand::LineWidthCommand(uint32_t eventId, float width)
@@ -229,8 +241,8 @@ BindFramebufferCommand::BindFramebufferCommand(uint32_t eventId,
     : Command(eventId, "bindFramebuffer"), m_target(target),
       m_framebufferId(framebufferId) {}
 void BindFramebufferCommand::execute() {
-  // id 0 = the capture's default framebuffer; route it through the override so a
-  // GUI host can redirect it to an offscreen FBO (otherwise it's the window).
+  // id 0 = the capture's default framebuffer; route it through the override so
+  // a GUI host can redirect it to an offscreen FBO (otherwise it's the window).
   GLuint handle = defaultFramebuffer();
   if (m_framebufferId != 0) {
     if (hasMappedHandle(ResourceKind::Framebuffer, m_framebufferId))
@@ -262,10 +274,9 @@ BindBufferRangeCommand::BindBufferRangeCommand(uint32_t eventId,
     : Command(eventId, "bindBufferRange"), m_target(target), m_index(index),
       m_bufferId(bufferId), m_offset(offset), m_size(size) {}
 void BindBufferRangeCommand::execute() {
-  glBindBufferRange(m_target, m_index,
-                    getMappedHandleOr(ResourceKind::Buffer, m_bufferId),
-                    static_cast<GLintptr>(m_offset),
-                    static_cast<GLsizeiptr>(m_size));
+  glBindBufferRange(
+      m_target, m_index, getMappedHandleOr(ResourceKind::Buffer, m_bufferId),
+      static_cast<GLintptr>(m_offset), static_cast<GLsizeiptr>(m_size));
 }
 
 BindTextureCommand::BindTextureCommand(uint32_t eventId, uint32_t target,
@@ -274,7 +285,8 @@ BindTextureCommand::BindTextureCommand(uint32_t eventId, uint32_t target,
       m_unit(unit) {}
 void BindTextureCommand::execute() {
   glActiveTexture(GL_TEXTURE0 + m_unit);
-  glBindTexture(m_target, getMappedHandleOr(ResourceKind::Texture, m_textureId));
+  glBindTexture(m_target,
+                getMappedHandleOr(ResourceKind::Texture, m_textureId));
 }
 
 ActiveTextureCommand::ActiveTextureCommand(uint32_t eventId, uint32_t unit)
@@ -289,7 +301,8 @@ void BindVertexArrayCommand::execute() {
   // which has no usable default VAO, so id 0 is backed by a real VAO handle
   // (see ResourceManager::ensureDefaultVertexArray). Use the mapping for id 0
   // too, falling back to 0 only if it somehow wasn't created.
-  glBindVertexArray(getMappedHandleOr(ResourceKind::VertexArray, m_vertexArrayId));
+  glBindVertexArray(
+      getMappedHandleOr(ResourceKind::VertexArray, m_vertexArrayId));
 }
 
 VertexAttribPointerCommand::VertexAttribPointerCommand(
@@ -383,12 +396,18 @@ CreateResourceCommand::CreateResourceCommand(uint32_t eventId,
 // Convert the Command-local ResourceKind to the global mapper ResourceKind.
 static ::ResourceKind toMapperKind(CreateResourceCommand::ResourceKind kind) {
   switch (kind) {
-  case CreateResourceCommand::ResourceKind::Buffer:      return ::ResourceKind::Buffer;
-  case CreateResourceCommand::ResourceKind::Texture:     return ::ResourceKind::Texture;
-  case CreateResourceCommand::ResourceKind::VertexArray: return ::ResourceKind::VertexArray;
-  case CreateResourceCommand::ResourceKind::Framebuffer: return ::ResourceKind::Framebuffer;
-  case CreateResourceCommand::ResourceKind::Shader:      return ::ResourceKind::Shader;
-  case CreateResourceCommand::ResourceKind::Program:     return ::ResourceKind::Program;
+  case CreateResourceCommand::ResourceKind::Buffer:
+    return ::ResourceKind::Buffer;
+  case CreateResourceCommand::ResourceKind::Texture:
+    return ::ResourceKind::Texture;
+  case CreateResourceCommand::ResourceKind::VertexArray:
+    return ::ResourceKind::VertexArray;
+  case CreateResourceCommand::ResourceKind::Framebuffer:
+    return ::ResourceKind::Framebuffer;
+  case CreateResourceCommand::ResourceKind::Shader:
+    return ::ResourceKind::Shader;
+  case CreateResourceCommand::ResourceKind::Program:
+    return ::ResourceKind::Program;
   }
   return ::ResourceKind::Buffer;
 }
@@ -493,7 +512,8 @@ void BufferDataCommand::execute() {
     // Inline typed-array payload is stored as double; convert to float bytes.
     std::vector<float> floats(inlineData->m_data.begin(),
                               inlineData->m_data.end());
-    GLsizeiptr byteSize = static_cast<GLsizeiptr>(floats.size() * sizeof(float));
+    GLsizeiptr byteSize =
+        static_cast<GLsizeiptr>(floats.size() * sizeof(float));
     if (isSubData)
       glBufferSubData(m_target, static_cast<GLintptr>(m_offset), byteSize,
                       floats.data());
@@ -534,11 +554,11 @@ void TextureImageCommand::execute() {
   // (re)defines the whole level. The previous code always used glTexImage2D and
   // mis-read the sub-image args.
   if (getCommandName() == "texSubImage2D") {
-    glTexSubImage2D(m_target, static_cast<GLint>(m_mipmapLevel),
-                    static_cast<GLint>(m_xOffset), static_cast<GLint>(m_yOffset),
-                    static_cast<GLsizei>(m_width),
-                    static_cast<GLsizei>(m_height), m_format, m_pixelType,
-                    pixelData);
+    glTexSubImage2D(
+        m_target, static_cast<GLint>(m_mipmapLevel),
+        static_cast<GLint>(m_xOffset), static_cast<GLint>(m_yOffset),
+        static_cast<GLsizei>(m_width), static_cast<GLsizei>(m_height), m_format,
+        m_pixelType, pixelData);
   } else {
     glTexImage2D(m_target, static_cast<GLint>(m_mipmapLevel),
                  static_cast<GLint>(m_internalFormat),
@@ -609,13 +629,15 @@ UniformCommand::UniformCommand(uint32_t eventId, std::string uniformName,
 // Captures often label scalar/vector uniforms as "name[0]" (e.g.
 // "_MainLightColor[0]"); glGetUniformLocation returns -1 for that on a
 // non-array uniform, so retry with the base name. Without this, per-frame
-// lighting/material uniforms are silently dropped and lit geometry renders black.
-static GLint getUniformLocationFlexible(GLuint program, const std::string& name) {
+// lighting/material uniforms are silently dropped and lit geometry renders
+// black.
+static GLint getUniformLocationFlexible(GLuint program,
+                                        const std::string &name) {
   GLint location = glGetUniformLocation(program, name.c_str());
   if (location < 0 && name.size() >= 3 &&
       name.compare(name.size() - 3, 3, "[0]") == 0)
-    location = glGetUniformLocation(program,
-                                    name.substr(0, name.size() - 3).c_str());
+    location =
+        glGetUniformLocation(program, name.substr(0, name.size() - 3).c_str());
   return location;
 }
 
@@ -719,8 +741,7 @@ void UniformMatrixCommand::execute() {
       return;
     // Captured values are stored as double; convert to float for the GL call.
     std::vector<GLfloat> values(uniform->m_data.begin(), uniform->m_data.end());
-    glUniformMatrix4fv(location,
-                       static_cast<GLsizei>(values.size() / 16),
+    glUniformMatrix4fv(location, static_cast<GLsizei>(values.size() / 16),
                        m_transpose ? GL_TRUE : GL_FALSE, values.data());
   }
 }
@@ -754,9 +775,8 @@ FramebufferTexture2DCommand::FramebufferTexture2DCommand(
       m_attachment(attachment), m_textureTarget(textureTarget),
       m_textureId(textureId), m_mipmapLevel(mipmapLevel) {}
 void FramebufferTexture2DCommand::execute() {
-  glBindFramebuffer(GL_FRAMEBUFFER,
-                    getMappedHandleOr(ResourceKind::Framebuffer,
-                                      m_framebufferId));
+  glBindFramebuffer(GL_FRAMEBUFFER, getMappedHandleOr(ResourceKind::Framebuffer,
+                                                      m_framebufferId));
   glFramebufferTexture2D(GL_FRAMEBUFFER, m_attachment, m_textureTarget,
                          getMappedHandleOr(ResourceKind::Texture, m_textureId),
                          static_cast<GLint>(m_mipmapLevel));

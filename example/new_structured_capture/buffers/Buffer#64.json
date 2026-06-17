@@ -1,0 +1,12 @@
+{
+  "id": 64,
+  "label": "Buffer#64",
+  "target": 35345,
+  "bufferType": "UBO",
+  "usage": 35048,
+  "byteLength": 3280,
+  "capturedByteLength": 3280,
+  "hasBaselineBytes": true,
+  "sourceKind": "CopyBufferSubData@4MBcap",
+  "dataPath": "Buffer#64.bin"
+}

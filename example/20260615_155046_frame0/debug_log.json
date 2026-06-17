@@ -1,0 +1,15 @@
+[
+  {
+    "timestamp": "2026-06-15T07:50:46.243Z",
+    "message": "startFrameCapture: current texture status",
+    "data": {
+      "totalTextures": 0,
+      "currentFramebufferId": 0
+    }
+  },
+  {
+    "timestamp": "2026-06-15T07:50:46.243Z",
+    "message": "startFrameCapture: texture details",
+    "data": []
+  }
+]

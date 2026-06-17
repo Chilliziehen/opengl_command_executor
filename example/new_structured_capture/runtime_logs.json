@@ -1,0 +1,1494 @@
+[
+  {
+    "ts": 1781662536998,
+    "level": "log",
+    "msg": "[init] overlay canvas disabled; using bottom-left hotzone trigger only"
+  },
+  {
+    "ts": 1781662536998,
+    "level": "log",
+    "msg": "[init] booted"
+  },
+  {
+    "ts": 1781662538198,
+    "level": "log",
+    "msg": "[init] main loop hook installed"
+  },
+  {
+    "ts": 1781662538198,
+    "level": "log",
+    "msg": "[init] browser context hook installed"
+  },
+  {
+    "ts": 1781662540390,
+    "level": "log",
+    "msg": "[init] attaching to existing gl context",
+    "extra": {
+      "hasModule": true
+    }
+  },
+  {
+    "ts": 1781662540391,
+    "level": "log",
+    "msg": "[init] WebGL2 UBO method availability",
+    "extra": {
+      "hasBindBufferRange": true,
+      "hasBindBufferBase": true,
+      "hasGetUniformBlockIndex": true,
+      "hasUniformBlockBinding": true,
+      "hasGetActiveUniformBlockParameter": true
+    }
+  },
+  {
+    "ts": 1781662540392,
+    "level": "log",
+    "msg": "[init] pre-hook GPU state probe completed"
+  },
+  {
+    "ts": 1781662540392,
+    "level": "log",
+    "msg": "[init] gl hooks installed"
+  },
+  {
+    "ts": 1781662540392,
+    "level": "log",
+    "msg": "[init] runtime capture ready",
+    "extra": {
+      "profile": "gl-command-sample-uniform-scalars-matrices-buffer-texture-payload",
+      "projectRoot": "",
+      "sandboxRoot": "http://usr/tuanjierelic-captures",
+      "hotzone": {
+        "left": 24,
+        "top": 286,
+        "right": 184,
+        "bottom": 342
+      },
+      "ready": true
+    }
+  },
+  {
+    "ts": 1781662544742,
+    "level": "log",
+    "msg": "[tex] texStorage2D: captured metadata",
+    "extra": {
+      "textureId": 2,
+      "label": "Texture#2",
+      "target": 3553,
+      "levels": 1,
+      "internalFormat": 35907,
+      "width": 2832,
+      "height": 1281
+    }
+  },
+  {
+    "ts": 1781662545132,
+    "level": "log",
+    "msg": "[tex] texStorage2D: captured metadata",
+    "extra": {
+      "textureId": 3,
+      "label": "Texture#3",
+      "target": 3553,
+      "levels": 1,
+      "internalFormat": 36012,
+      "width": 1,
+      "height": 1
+    }
+  },
+  {
+    "ts": 1781662545245,
+    "level": "log",
+    "msg": "[tex] texStorage2D: captured metadata",
+    "extra": {
+      "textureId": 4,
+      "label": "Texture#4",
+      "target": 3553,
+      "levels": 1,
+      "internalFormat": 33189,
+      "width": 4096,
+      "height": 4096
+    }
+  },
+  {
+    "ts": 1781662545246,
+    "level": "log",
+    "msg": "[tex] texStorage2D: captured metadata",
+    "extra": {
+      "textureId": 5,
+      "label": "Texture#5",
+      "target": 3553,
+      "levels": 1,
+      "internalFormat": 33189,
+      "width": 1,
+      "height": 1
+    }
+  },
+  {
+    "ts": 1781662545246,
+    "level": "log",
+    "msg": "[tex] texStorage2D: captured metadata",
+    "extra": {
+      "textureId": 6,
+      "label": "Texture#6",
+      "target": 3553,
+      "levels": 1,
+      "internalFormat": 35898,
+      "width": 2832,
+      "height": 1281
+    }
+  },
+  {
+    "ts": 1781662545247,
+    "level": "log",
+    "msg": "[tex] texStorage2D: captured metadata",
+    "extra": {
+      "textureId": 7,
+      "label": "Texture#7",
+      "target": 3553,
+      "levels": 1,
+      "internalFormat": 35898,
+      "width": 2832,
+      "height": 1281
+    }
+  },
+  {
+    "ts": 1781662545247,
+    "level": "log",
+    "msg": "[tex] texStorage2D: captured metadata",
+    "extra": {
+      "textureId": 8,
+      "label": "Texture#8",
+      "target": 3553,
+      "levels": 1,
+      "internalFormat": 35056,
+      "width": 2832,
+      "height": 1281
+    }
+  },
+  {
+    "ts": 1781662546628,
+    "level": "log",
+    "msg": "[init] capture hotzone tapped",
+    "extra": {
+      "x": 67.635498046875,
+      "y": 317.3646240234375,
+      "rect": {
+        "left": 24,
+        "top": 286,
+        "right": 184,
+        "bottom": 342
+      },
+      "hit": true
+    }
+  },
+  {
+    "ts": 1781662546628,
+    "level": "log",
+    "msg": "[frame] requestCapture invoked",
+    "extra": {
+      "ready": true,
+      "glHookInstalled": true,
+      "loopHookInstalled": true,
+      "saving": false,
+      "capturing": false,
+      "frameIndex": 6
+    }
+  },
+  {
+    "ts": 1781662546629,
+    "level": "log",
+    "msg": "[frame] frame capture hooks activated"
+  },
+  {
+    "ts": 1781662546629,
+    "level": "log",
+    "msg": "[frame] capture armed for next frame",
+    "extra": {
+      "nextFrameIndexHint": 7
+    }
+  },
+  {
+    "ts": 1781662546634,
+    "level": "log",
+    "msg": "[init] main loop observed armed capture",
+    "extra": {
+      "frameIndex": 7
+    }
+  },
+  {
+    "ts": 1781662546634,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: beginning"
+  },
+  {
+    "ts": 1781662546635,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: creating frameCapture object"
+  },
+  {
+    "ts": 1781662546635,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: initialState created"
+  },
+  {
+    "ts": 1781662546635,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: capturing initial resource snapshot"
+  },
+  {
+    "ts": 1781662546636,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: initial resource snapshot complete",
+    "extra": {
+      "shaders": 12,
+      "programs": 6,
+      "buffers": 69,
+      "textures": 12,
+      "framebuffers": 3,
+      "deletedTextures": 0
+    }
+  },
+  {
+    "ts": 1781662546645,
+    "level": "log",
+    "msg": "[resource] probeTextureDimensions: content boundary detection success",
+    "extra": {
+      "width": 4,
+      "height": 4,
+      "usedDepthAttachment": false
+    }
+  },
+  {
+    "ts": 1781662546648,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 4,
+      "texHeight": 4,
+      "capturedWidth": 1,
+      "capturedHeight": 1,
+      "byteLength": 4
+    }
+  },
+  {
+    "ts": 1781662546690,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 2832,
+      "texHeight": 1281,
+      "capturedWidth": 708,
+      "capturedHeight": 320,
+      "byteLength": 906240
+    }
+  },
+  {
+    "ts": 1781662546694,
+    "level": "log",
+    "msg": "[depth-blit] captureDepthStencilPixelsViaBlit: success",
+    "extra": {
+      "internalFormat": 36012,
+      "origSize": "1x1",
+      "blitSize": "1x1",
+      "downsample": 1,
+      "bytes": 4
+    }
+  },
+  {
+    "ts": 1781662546702,
+    "level": "log",
+    "msg": "[depth-blit] captureDepthStencilPixelsViaBlit: success",
+    "extra": {
+      "internalFormat": 33189,
+      "origSize": "4096x4096",
+      "blitSize": "1024x1024",
+      "downsample": 4,
+      "bytes": 4194304
+    }
+  },
+  {
+    "ts": 1781662546705,
+    "level": "log",
+    "msg": "[depth-blit] captureDepthStencilPixelsViaBlit: success",
+    "extra": {
+      "internalFormat": 33189,
+      "origSize": "1x1",
+      "blitSize": "1x1",
+      "downsample": 1,
+      "bytes": 4
+    }
+  },
+  {
+    "ts": 1781662546728,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 2832,
+      "texHeight": 1281,
+      "capturedWidth": 708,
+      "capturedHeight": 320,
+      "byteLength": 906240
+    }
+  },
+  {
+    "ts": 1781662546746,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 2832,
+      "texHeight": 1281,
+      "capturedWidth": 708,
+      "capturedHeight": 320,
+      "byteLength": 906240
+    }
+  },
+  {
+    "ts": 1781662546752,
+    "level": "log",
+    "msg": "[depth-blit] captureDepthStencilPixelsViaBlit: success",
+    "extra": {
+      "internalFormat": 35056,
+      "origSize": "2832x1281",
+      "blitSize": "708x320",
+      "downsample": 4,
+      "bytes": 906240
+    }
+  },
+  {
+    "ts": 1781662546758,
+    "level": "log",
+    "msg": "[resource] probeTextureDimensions: content boundary detection success",
+    "extra": {
+      "width": 16,
+      "height": 16,
+      "usedDepthAttachment": false
+    }
+  },
+  {
+    "ts": 1781662546760,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 16,
+      "texHeight": 16,
+      "capturedWidth": 4,
+      "capturedHeight": 4,
+      "byteLength": 64
+    }
+  },
+  {
+    "ts": 1781662546760,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: FBO texture baseline capture",
+    "extra": {
+      "capturedCount": 9,
+      "results": [
+        {
+          "id": 1,
+          "label": "Texture#1",
+          "width": 4,
+          "height": 4,
+          "captured": "1x1",
+          "byteLength": 4
+        },
+        {
+          "id": 2,
+          "label": "Texture#2",
+          "width": 2832,
+          "height": 1281,
+          "captured": "708x320",
+          "byteLength": 906240
+        },
+        {
+          "id": 3,
+          "label": "Texture#3",
+          "width": 1,
+          "height": 1,
+          "captured": "1x1",
+          "byteLength": 4
+        },
+        {
+          "id": 4,
+          "label": "Texture#4",
+          "width": 4096,
+          "height": 4096,
+          "captured": "1024x1024",
+          "byteLength": 4194304
+        },
+        {
+          "id": 5,
+          "label": "Texture#5",
+          "width": 1,
+          "height": 1,
+          "captured": "1x1",
+          "byteLength": 4
+        },
+        {
+          "id": 6,
+          "label": "Texture#6",
+          "width": 2832,
+          "height": 1281,
+          "captured": "708x320",
+          "byteLength": 906240
+        },
+        {
+          "id": 7,
+          "label": "Texture#7",
+          "width": 2832,
+          "height": 1281,
+          "captured": "708x320",
+          "byteLength": 906240
+        },
+        {
+          "id": 8,
+          "label": "Texture#8",
+          "width": 2832,
+          "height": 1281,
+          "captured": "708x320",
+          "byteLength": 906240
+        },
+        {
+          "id": 12,
+          "label": "Texture#12",
+          "width": 16,
+          "height": 16,
+          "captured": "4x4",
+          "byteLength": 64
+        }
+      ]
+    }
+  },
+  {
+    "ts": 1781662546765,
+    "level": "log",
+    "msg": "[resource] probeTextureDimensions: content boundary detection success",
+    "extra": {
+      "width": 128,
+      "height": 128,
+      "usedDepthAttachment": false
+    }
+  },
+  {
+    "ts": 1781662546766,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 128,
+      "texHeight": 128,
+      "capturedWidth": 32,
+      "capturedHeight": 32,
+      "byteLength": 4096
+    }
+  },
+  {
+    "ts": 1781662546768,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 128,
+      "texHeight": 128,
+      "capturedWidth": 32,
+      "capturedHeight": 32,
+      "byteLength": 4096
+    }
+  },
+  {
+    "ts": 1781662546770,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 128,
+      "texHeight": 128,
+      "capturedWidth": 32,
+      "capturedHeight": 32,
+      "byteLength": 4096
+    }
+  },
+  {
+    "ts": 1781662546774,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 128,
+      "texHeight": 128,
+      "capturedWidth": 32,
+      "capturedHeight": 32,
+      "byteLength": 4096
+    }
+  },
+  {
+    "ts": 1781662546777,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 128,
+      "texHeight": 128,
+      "capturedWidth": 32,
+      "capturedHeight": 32,
+      "byteLength": 4096
+    }
+  },
+  {
+    "ts": 1781662546780,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 128,
+      "texHeight": 128,
+      "capturedWidth": 32,
+      "capturedHeight": 32,
+      "byteLength": 4096
+    }
+  },
+  {
+    "ts": 1781662546785,
+    "level": "log",
+    "msg": "[resource] probeTextureDimensions: content boundary detection failed",
+    "extra": {
+      "probedWidth": 0,
+      "probedHeight": 0
+    }
+  },
+  {
+    "ts": 1781662546785,
+    "level": "log",
+    "msg": "[frame] cube map dim probe failed, using 512x512 depth fallback",
+    "extra": {
+      "id": 10,
+      "label": "Texture#10"
+    }
+  },
+  {
+    "ts": 1781662546802,
+    "level": "log",
+    "msg": "[resource] probeTextureDimensions: content boundary detection success",
+    "extra": {
+      "width": 1,
+      "height": 1,
+      "usedDepthAttachment": false
+    }
+  },
+  {
+    "ts": 1781662546803,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 1,
+      "texHeight": 1,
+      "capturedWidth": 1,
+      "capturedHeight": 1,
+      "byteLength": 4
+    }
+  },
+  {
+    "ts": 1781662546804,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 1,
+      "texHeight": 1,
+      "capturedWidth": 1,
+      "capturedHeight": 1,
+      "byteLength": 4
+    }
+  },
+  {
+    "ts": 1781662546805,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 1,
+      "texHeight": 1,
+      "capturedWidth": 1,
+      "capturedHeight": 1,
+      "byteLength": 4
+    }
+  },
+  {
+    "ts": 1781662546806,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 1,
+      "texHeight": 1,
+      "capturedWidth": 1,
+      "capturedHeight": 1,
+      "byteLength": 4
+    }
+  },
+  {
+    "ts": 1781662546807,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 1,
+      "texHeight": 1,
+      "capturedWidth": 1,
+      "capturedHeight": 1,
+      "byteLength": 4
+    }
+  },
+  {
+    "ts": 1781662546808,
+    "level": "log",
+    "msg": "[resource] captureTexturePixelsViaFBO: success",
+    "extra": {
+      "texWidth": 1,
+      "texHeight": 1,
+      "capturedWidth": 1,
+      "capturedHeight": 1,
+      "byteLength": 4
+    }
+  },
+  {
+    "ts": 1781662546809,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: cube map baseline capture",
+    "extra": {
+      "captured": 3,
+      "results": [
+        {
+          "id": 9,
+          "label": "Texture#9",
+          "w": 128,
+          "h": 128,
+          "perFace": 4096,
+          "total": 24576
+        },
+        {
+          "id": 10,
+          "label": "Texture#10",
+          "w": 512,
+          "h": 512,
+          "perFace": 65536,
+          "total": 393216
+        },
+        {
+          "id": 11,
+          "label": "Texture#11",
+          "w": 1,
+          "h": 1,
+          "perFace": 4,
+          "total": 24
+        }
+      ]
+    }
+  },
+  {
+    "ts": 1781662546847,
+    "level": "log",
+    "msg": "[frame] startFrameCapture: buffer baseline capture",
+    "extra": {
+      "capturedCount": 69,
+      "results": [
+        {
+          "id": 1,
+          "label": "Buffer#1",
+          "target": 34962,
+          "bufferType": "VBO",
+          "recordedByteLength": 1048576,
+          "gpuSize": 1048576,
+          "readSize": 1048576,
+          "bytesAllZero": false,
+          "bytesHex32": "0000000000000000000000000000000000000000000000009faf093cb17ee03b"
+        },
+        {
+          "id": 2,
+          "label": "Buffer#2",
+          "target": 34963,
+          "bufferType": "EBO",
+          "recordedByteLength": 131072,
+          "gpuSize": 131072,
+          "readSize": 131072,
+          "bytesAllZero": false,
+          "bytesHex32": "0000010002000000020003000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 3,
+          "label": "Buffer#3",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 128,
+          "gpuSize": 128,
+          "readSize": 128,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 4,
+          "label": "Buffer#4",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 64,
+          "gpuSize": 64,
+          "readSize": 64,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 5,
+          "label": "Buffer#5",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 64,
+          "gpuSize": 64,
+          "readSize": 64,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 6,
+          "label": "Buffer#6",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 1088,
+          "gpuSize": 1088,
+          "readSize": 1088,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 7,
+          "label": "Buffer#7",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 64,
+          "gpuSize": 64,
+          "readSize": 64,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 8,
+          "label": "Buffer#8",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 192,
+          "gpuSize": 192,
+          "readSize": 192,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 9,
+          "label": "Buffer#9",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 720,
+          "gpuSize": 720,
+          "readSize": 720,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        },
+        {
+          "id": 10,
+          "label": "Buffer#10",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 65536,
+          "gpuSize": 65536,
+          "readSize": 65536,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 11,
+          "label": "Buffer#11",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 64,
+          "gpuSize": 64,
+          "readSize": 64,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 12,
+          "label": "Buffer#12",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4096,
+          "gpuSize": 4096,
+          "readSize": 4096,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 13,
+          "label": "Buffer#13",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 16384,
+          "gpuSize": 16384,
+          "readSize": 16384,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 14,
+          "label": "Buffer#14",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 272,
+          "gpuSize": 272,
+          "readSize": 272,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 15,
+          "label": "Buffer#15",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2416,
+          "gpuSize": 2416,
+          "readSize": 2416,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 16,
+          "label": "Buffer#16",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 80,
+          "gpuSize": 80,
+          "readSize": 80,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 17,
+          "label": "Buffer#17",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 80,
+          "gpuSize": 80,
+          "readSize": 80,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 18,
+          "label": "Buffer#18",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2512,
+          "gpuSize": 2512,
+          "readSize": 2512,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 19,
+          "label": "Buffer#19",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2816,
+          "gpuSize": 2816,
+          "readSize": 2816,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 20,
+          "label": "Buffer#20",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2912,
+          "gpuSize": 2912,
+          "readSize": 2912,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 21,
+          "label": "Buffer#21",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 96,
+          "gpuSize": 96,
+          "readSize": 96,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 22,
+          "label": "Buffer#22",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 64,
+          "gpuSize": 64,
+          "readSize": 64,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 23,
+          "label": "Buffer#23",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 96,
+          "gpuSize": 96,
+          "readSize": 96,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 24,
+          "label": "Buffer#24",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 80,
+          "gpuSize": 80,
+          "readSize": 80,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 25,
+          "label": "Buffer#25",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 432,
+          "gpuSize": 432,
+          "readSize": 432,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 26,
+          "label": "Buffer#26",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 480,
+          "gpuSize": 480,
+          "readSize": 480,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 27,
+          "label": "Buffer#27",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 384,
+          "gpuSize": 384,
+          "readSize": 384,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 28,
+          "label": "Buffer#28",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 112,
+          "gpuSize": 112,
+          "readSize": 112,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 29,
+          "label": "Buffer#29",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 64,
+          "gpuSize": 64,
+          "readSize": 64,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 30,
+          "label": "Buffer#30",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 224,
+          "gpuSize": 224,
+          "readSize": 224,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 31,
+          "label": "Buffer#31",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 160,
+          "gpuSize": 160,
+          "readSize": 160,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 32,
+          "label": "Buffer#32",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 144,
+          "gpuSize": 144,
+          "readSize": 144,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 33,
+          "label": "Buffer#33",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 384,
+          "gpuSize": 384,
+          "readSize": 384,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 34,
+          "label": "Buffer#34",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 336,
+          "gpuSize": 336,
+          "readSize": 336,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 35,
+          "label": "Buffer#35",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4336,
+          "gpuSize": 4336,
+          "readSize": 4336,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 36,
+          "label": "Buffer#36",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4240,
+          "gpuSize": 4240,
+          "readSize": 4240,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 37,
+          "label": "Buffer#37",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 3936,
+          "gpuSize": 3936,
+          "readSize": 3936,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 38,
+          "label": "Buffer#38",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 3840,
+          "gpuSize": 3840,
+          "readSize": 3840,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 39,
+          "label": "Buffer#39",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 176,
+          "gpuSize": 176,
+          "readSize": 176,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 40,
+          "label": "Buffer#40",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4448,
+          "gpuSize": 4448,
+          "readSize": 4448,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 41,
+          "label": "Buffer#41",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 160,
+          "gpuSize": 160,
+          "readSize": 160,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 42,
+          "label": "Buffer#42",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 64,
+          "gpuSize": 64,
+          "readSize": 64,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 43,
+          "label": "Buffer#43",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 128,
+          "gpuSize": 128,
+          "readSize": 128,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f0000803f000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 44,
+          "label": "Buffer#44",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4432,
+          "gpuSize": 4432,
+          "readSize": 4432,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 45,
+          "label": "Buffer#45",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 3024,
+          "gpuSize": 3024,
+          "readSize": 3024,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 46,
+          "label": "Buffer#46",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 3008,
+          "gpuSize": 3008,
+          "readSize": 3008,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 47,
+          "label": "Buffer#47",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4352,
+          "gpuSize": 4352,
+          "readSize": 4352,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 48,
+          "label": "Buffer#48",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2928,
+          "gpuSize": 2928,
+          "readSize": 2928,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 49,
+          "label": "Buffer#49",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4048,
+          "gpuSize": 4048,
+          "readSize": 4048,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 50,
+          "label": "Buffer#50",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 4032,
+          "gpuSize": 4032,
+          "readSize": 4032,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 51,
+          "label": "Buffer#51",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2624,
+          "gpuSize": 2624,
+          "readSize": 2624,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 52,
+          "label": "Buffer#52",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2608,
+          "gpuSize": 2608,
+          "readSize": 2608,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 53,
+          "label": "Buffer#53",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 3952,
+          "gpuSize": 3952,
+          "readSize": 3952,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 54,
+          "label": "Buffer#54",
+          "target": 36663,
+          "bufferType": "Other",
+          "recordedByteLength": 2528,
+          "gpuSize": 2528,
+          "readSize": 2528,
+          "bytesAllZero": true,
+          "bytesHex32": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "id": 55,
+          "label": "Buffer#55",
+          "target": 34962,
+          "bufferType": "VBO",
+          "recordedByteLength": 48,
+          "gpuSize": 48,
+          "readSize": 48,
+          "bytesAllZero": false,
+          "bytesHex32": "000080bf000040400000000000000040000080bf000080bf0000000000000000"
+        },
+        {
+          "id": 56,
+          "label": "Buffer#56",
+          "target": 34963,
+          "bufferType": "EBO",
+          "recordedByteLength": 6,
+          "gpuSize": 6,
+          "readSize": 6,
+          "bytesAllZero": false,
+          "bytesHex32": "000001000200"
+        },
+        {
+          "id": 57,
+          "label": "Buffer#57",
+          "target": 34962,
+          "bufferType": "VBO",
+          "recordedByteLength": 352,
+          "gpuSize": 352,
+          "readSize": 352,
+          "bytesAllZero": false,
+          "bytesHex32": "0000000000000000000000000000000000000000000000009faf093cb17ee03b"
+        },
+        {
+          "id": 58,
+          "label": "Buffer#58",
+          "target": 34963,
+          "bufferType": "EBO",
+          "recordedByteLength": 12,
+          "gpuSize": 12,
+          "readSize": 12,
+          "bytesAllZero": false,
+          "bytesHex32": "000001000200000002000300"
+        },
+        {
+          "id": 59,
+          "label": "Buffer#59",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 128,
+          "gpuSize": 128,
+          "readSize": 128,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f0000803f000000000000000000000000ffffffff0000000000000000"
+        },
+        {
+          "id": 60,
+          "label": "Buffer#60",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 2000,
+          "gpuSize": 2000,
+          "readSize": 2000,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        },
+        {
+          "id": 61,
+          "label": "Buffer#61",
+          "target": 34962,
+          "bufferType": "VBO",
+          "recordedByteLength": 1344,
+          "gpuSize": 1344,
+          "readSize": 1344,
+          "bytesAllZero": false,
+          "bytesHex32": "0000003f000000bf0000003f00000000000000000000803f000080bf00000000"
+        },
+        {
+          "id": 62,
+          "label": "Buffer#62",
+          "target": 34963,
+          "bufferType": "EBO",
+          "recordedByteLength": 72,
+          "gpuSize": 72,
+          "readSize": 72,
+          "bytesAllZero": false,
+          "bytesHex32": "0000020003000000030001000800040005000800050009000a00060007000a00"
+        },
+        {
+          "id": 63,
+          "label": "Buffer#63",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 2000,
+          "gpuSize": 2000,
+          "readSize": 2000,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        },
+        {
+          "id": 64,
+          "label": "Buffer#64",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 3280,
+          "gpuSize": 3280,
+          "readSize": 3280,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        },
+        {
+          "id": 65,
+          "label": "Buffer#65",
+          "target": 34962,
+          "bufferType": "VBO",
+          "recordedByteLength": 141120,
+          "gpuSize": 141120,
+          "readSize": 141120,
+          "bytesAllZero": false,
+          "bytesHex32": "000000000000803f00000000ffffffff000000000000803f0000000000000000"
+        },
+        {
+          "id": 66,
+          "label": "Buffer#66",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 2000,
+          "gpuSize": 2000,
+          "readSize": 2000,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        },
+        {
+          "id": 67,
+          "label": "Buffer#67",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 2000,
+          "gpuSize": 2000,
+          "readSize": 2000,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        },
+        {
+          "id": 68,
+          "label": "Buffer#68",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 3280,
+          "gpuSize": 3280,
+          "readSize": 3280,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        },
+        {
+          "id": 69,
+          "label": "Buffer#69",
+          "target": 35345,
+          "bufferType": "UBO",
+          "recordedByteLength": 720,
+          "gpuSize": 720,
+          "readSize": 720,
+          "bytesAllZero": false,
+          "bytesHex32": "0000803f000000000000000000000000000000000000803f0000000000000000"
+        }
+      ]
+    }
+  },
+  {
+    "ts": 1781662546847,
+    "level": "log",
+    "msg": "[frame] frame capture started",
+    "extra": {
+      "frameIndex": 7,
+      "captureName": "20260617_101546_frame7",
+      "canvas": {
+        "width": 2832,
+        "height": 1281,
+        "cssWidth": 809,
+        "cssHeight": 366,
+        "devicePixelRatio": 3.5
+      }
+    }
+  },
+  {
+    "ts": 1781662549141,
+    "level": "log",
+    "msg": "[cmd] recordCommand: progress",
+    "extra": {
+      "eventId": 100,
+      "name": "uniform4fv",
+      "commandCount": 100
+    }
+  },
+  {
+    "ts": 1781662549164,
+    "level": "log",
+    "msg": "[init] main loop: calling finishFrameCapture",
+    "extra": {
+      "commandCount": 174
+    }
+  },
+  {
+    "ts": 1781662549164,
+    "level": "log",
+    "msg": "[frame] finishFrameCapture: assembling bundle from frame-start snapshot"
+  },
+  {
+    "ts": 1781662549181,
+    "level": "log",
+    "msg": "[frame] finishFrameCapture: captured screen pixels",
+    "extra": {
+      "w": 2832,
+      "h": 1281,
+      "byteLength": 14511168
+    }
+  }
+]

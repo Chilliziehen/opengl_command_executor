@@ -1,0 +1,40 @@
+[
+  {
+    "id": 0,
+    "label": "VAO#0 (default)",
+    "attribs": {
+      "0": {
+        "enabled": true,
+        "size": 4,
+        "type": 5126,
+        "normalized": false,
+        "stride": 16,
+        "offset": 0,
+        "bufferId": 55,
+        "name": "vertex"
+      },
+      "1": {
+        "enabled": false,
+        "size": 3,
+        "type": 5126,
+        "normalized": false,
+        "stride": 56,
+        "offset": 12,
+        "bufferId": 61,
+        "name": "in_NORMAL0"
+      },
+      "2": {
+        "enabled": false,
+        "size": 2,
+        "type": 5126,
+        "normalized": false,
+        "stride": 56,
+        "offset": 40,
+        "bufferId": 61,
+        "name": "in_TEXCOORD0"
+      }
+    },
+    "elementArrayBufferId": 56,
+    "deleted": false
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "id": 2,
+  "label": "Buffer#2",
+  "target": 34963,
+  "bufferType": "EBO",
+  "usage": 35044,
+  "byteLength": 72,
+  "capturedByteLength": 72,
+  "hasBaselineBytes": true,
+  "sourceKind": "DirectGetBufferSubData@EBO",
+  "dataPath": "Buffer#2.bin"
+}
