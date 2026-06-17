@@ -28,6 +28,36 @@ struct BlendEquationState {
     uint32_t m_alphaMode = 0;
 };
 
+/// Per-face stencil state (state.json stencilFront / stencilBack)
+struct StencilFaceCapture {
+    uint32_t m_func        = 0x0207; // GL_ALWAYS
+    int32_t  m_ref         = 0;
+    uint32_t m_compareMask = 0xFFFFFFFFu;
+    uint32_t m_writeMask   = 0xFFFFFFFFu;
+    uint32_t m_sfail       = 0x1E00; // GL_KEEP
+    uint32_t m_dpfail      = 0x1E00;
+    uint32_t m_dppass      = 0x1E00;
+};
+
+/// A UBO binding-point entry (state.json uniformBufferBindings[i])
+struct UboBindingCapture {
+    uint32_t m_bufferId = 0;
+    int64_t  m_offset   = 0;
+    int64_t  m_size     = 0; // 0 = bindBufferBase (whole buffer)
+};
+
+/// glPixelStorei pack/unpack parameter group (state.json pixelPack / pixelUnpack)
+struct PixelStoreCapture {
+    bool    m_swapBytes   = false;
+    bool    m_lsbFirst    = false;
+    int32_t m_rowLength   = 0;
+    int32_t m_imageHeight = 0;
+    int32_t m_skipRows    = 0;
+    int32_t m_skipPixels  = 0;
+    int32_t m_skipImages  = 0;
+    int32_t m_alignment   = 4;
+};
+
 /// Full GL state snapshot matching the capture schema state.json
 struct CaptureState {
     /// Currently active program ID
@@ -96,8 +126,54 @@ struct CaptureState {
     /// Scissor box: [x, y, width, height]
     std::vector<int32_t> m_scissorBox;
 
-    /// Pixel store parameters (key = GLenum string, value = int)
+    /// Pixel store parameters (key = GLenum string, value = int) — legacy "pixelStore"
     std::unordered_map<std::string, int32_t> m_pixelStoreParameters;
+
+    // ──────────────── v2 additions ────────────────
+
+    /// GL_READ_FRAMEBUFFER_BINDING (0 = default)
+    uint32_t m_readFramebufferId = 0;
+    /// glDrawBuffers GLenum list
+    std::vector<uint32_t> m_drawBuffers;
+    /// glReadBuffer GLenum (default GL_BACK)
+    uint32_t m_readBuffer = 0x0405;
+
+    /// binding point (string key) → UBO binding
+    std::unordered_map<std::string, UboBindingCapture> m_uniformBufferBindings;
+    /// texture unit (string key) → sampler object ID
+    std::unordered_map<std::string, uint32_t> m_samplerObjects;
+
+    /// WebGL2 separate-format vertex bindings (binding point → {buffer,offset,stride})
+    std::unordered_map<std::string, VertexAttribute> m_vertexBufferBindings; // reuse fields loosely
+    std::unordered_map<std::string, uint32_t> m_vertexBindingDivisors;
+
+    /// Blend
+    bool m_blendEnabled = false;
+    std::vector<float> m_blendColor; // [r,g,b,a]
+
+    /// Stencil
+    bool m_stencilTestEnabled = false;
+    StencilFaceCapture m_stencilFront;
+    StencilFaceCapture m_stencilBack;
+
+    /// Depth range
+    float m_depthRangeNear = 0.0f;
+    float m_depthRangeFar  = 1.0f;
+
+    /// Rasterizer extras
+    bool  m_scissorTestEnabled = false;
+    bool  m_polygonOffsetFillEnabled = false;
+    float m_polygonOffsetFactor = 0.0f;
+    float m_polygonOffsetUnits  = 0.0f;
+    float m_lineWidth = 1.0f;
+    bool  m_multisampleEnabled = true;
+
+    /// Pixel storage (v2 structured) + PBO bindings
+    PixelStoreCapture m_pixelPack;
+    PixelStoreCapture m_pixelUnpack;
+    bool m_hasPixelPackUnpack = false; // whether the structured fields were present
+    uint32_t m_pixelPackBuffer = 0;
+    uint32_t m_pixelUnpackBuffer = 0;
 };
 
 #endif // STATE_H

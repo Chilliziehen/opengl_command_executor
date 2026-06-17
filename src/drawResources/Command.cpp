@@ -385,6 +385,81 @@ void DrawArraysCommand::execute() {
                static_cast<GLsizei>(m_vertexCount));
 }
 
+DrawElementsInstancedCommand::DrawElementsInstancedCommand(
+    uint32_t eventId, uint32_t drawMode, uint32_t indexCount, uint32_t indexType,
+    uint32_t indexOffset, uint32_t instanceCount, uint32_t framebufferId)
+    : Command(eventId, "drawElementsInstanced"), m_drawMode(drawMode),
+      m_indexCount(indexCount), m_indexType(indexType),
+      m_indexOffset(indexOffset), m_instanceCount(instanceCount),
+      m_framebufferId(framebufferId) {}
+void DrawElementsInstancedCommand::execute() {
+  if (m_framebufferId != 0 && hasMappedHandle(ResourceKind::Framebuffer, m_framebufferId))
+    glBindFramebuffer(GL_FRAMEBUFFER,
+                      getMappedHandle(ResourceKind::Framebuffer, m_framebufferId));
+  fixupSamplerBindings();
+  glDrawElementsInstanced(
+      m_drawMode, static_cast<GLsizei>(m_indexCount), m_indexType,
+      reinterpret_cast<const void *>(static_cast<uintptr_t>(m_indexOffset)),
+      static_cast<GLsizei>(m_instanceCount));
+}
+
+DrawArraysInstancedCommand::DrawArraysInstancedCommand(
+    uint32_t eventId, uint32_t drawMode, uint32_t firstVertex,
+    uint32_t vertexCount, uint32_t instanceCount, uint32_t framebufferId)
+    : Command(eventId, "drawArraysInstanced"), m_drawMode(drawMode),
+      m_firstVertex(firstVertex), m_vertexCount(vertexCount),
+      m_instanceCount(instanceCount), m_framebufferId(framebufferId) {}
+void DrawArraysInstancedCommand::execute() {
+  if (m_framebufferId != 0 && hasMappedHandle(ResourceKind::Framebuffer, m_framebufferId))
+    glBindFramebuffer(GL_FRAMEBUFFER,
+                      getMappedHandle(ResourceKind::Framebuffer, m_framebufferId));
+  fixupSamplerBindings();
+  glDrawArraysInstanced(m_drawMode, static_cast<GLint>(m_firstVertex),
+                        static_cast<GLsizei>(m_vertexCount),
+                        static_cast<GLsizei>(m_instanceCount));
+}
+
+// ---- v2 state / misc commands ----
+
+DrawBuffersCommand::DrawBuffersCommand(uint32_t eventId, std::vector<uint32_t> buffers)
+    : Command(eventId, "drawBuffers"), m_buffers(std::move(buffers)) {}
+void DrawBuffersCommand::execute() {
+  // COLOR_ATTACHMENT* are only valid on a real FBO; on the window default
+  // framebuffer the draw buffer must stay GL_BACK, so skip when FBO 0 is bound.
+  GLint drawFbo = 0;
+  glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &drawFbo);
+  if (drawFbo == 0 || m_buffers.empty())
+    return;
+  std::vector<GLenum> bufs(m_buffers.begin(), m_buffers.end());
+  glDrawBuffers(static_cast<GLsizei>(bufs.size()), bufs.data());
+}
+
+ReadBufferCommand::ReadBufferCommand(uint32_t eventId, uint32_t mode)
+    : Command(eventId, "readBuffer"), m_mode(mode) {}
+void ReadBufferCommand::execute() {
+  GLint readFbo = 0;
+  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFbo);
+  if (readFbo != 0)
+    glReadBuffer(m_mode);
+}
+
+PolygonOffsetCommand::PolygonOffsetCommand(uint32_t eventId, float factor, float units)
+    : Command(eventId, "polygonOffset"), m_factor(factor), m_units(units) {}
+void PolygonOffsetCommand::execute() { glPolygonOffset(m_factor, m_units); }
+
+CopyBufferSubDataCommand::CopyBufferSubDataCommand(uint32_t eventId, uint32_t readTarget,
+                                                   uint32_t writeTarget, uint64_t readOffset,
+                                                   uint64_t writeOffset, uint64_t size)
+    : Command(eventId, "copyBufferSubData"), m_readTarget(readTarget),
+      m_writeTarget(writeTarget), m_readOffset(readOffset),
+      m_writeOffset(writeOffset), m_size(size) {}
+void CopyBufferSubDataCommand::execute() {
+  glCopyBufferSubData(m_readTarget, m_writeTarget,
+                      static_cast<GLintptr>(m_readOffset),
+                      static_cast<GLintptr>(m_writeOffset),
+                      static_cast<GLsizeiptr>(m_size));
+}
+
 // ---- resource lifecycle ----
 
 CreateResourceCommand::CreateResourceCommand(uint32_t eventId,

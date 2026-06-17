@@ -126,6 +126,11 @@ static CaptureProgram parseProgram(const Json& j) {
     if (j.contains("attachedShaderIds") && j["attachedShaderIds"].is_array())
         for (const auto& sid : j["attachedShaderIds"])
             p.m_attachedShaderIds.push_back(sid.get<uint32_t>());
+    // v2: explicit uniform-block-index → binding-point mapping
+    if (j.contains("uniformBlockBindings") && j["uniformBlockBindings"].is_object())
+        for (auto& [blockIdx, binding] : j["uniformBlockBindings"].items())
+            p.m_uniformBlockBindings[static_cast<uint32_t>(std::stoul(blockIdx))] =
+                binding.get<uint32_t>();
     return p;
 }
 
@@ -380,6 +385,43 @@ static const std::unordered_map<std::string, CommandParserFunc>& getCommandParse
                 a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
                 j.value("framebufferId", 0U));
         }},
+        {"drawElementsInstanced", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<DrawElementsInstancedCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
+                a[3].get<uint32_t>(), a[4].get<uint32_t>(), j.value("framebufferId", 0U));
+        }},
+        {"drawArraysInstanced", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<DrawArraysInstancedCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint32_t>(),
+                a[3].get<uint32_t>(), j.value("framebufferId", 0U));
+        }},
+        {"drawBuffers", [](const Json& j) -> CommandPtr {
+            // args: [[GLenum, ...]]  (nested array)
+            std::vector<uint32_t> bufs;
+            const auto& a = j["args"];
+            if (a.is_array() && !a.empty() && a[0].is_array())
+                for (const auto& e : a[0]) bufs.push_back(e.get<uint32_t>());
+            return std::make_unique<DrawBuffersCommand>(j.value("eventId", 0U), std::move(bufs));
+        }},
+        {"readBuffer", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<ReadBufferCommand>(j.value("eventId", 0U),
+                (a.is_array() && !a.empty()) ? a[0].get<uint32_t>() : 0x0405U);
+        }},
+        {"polygonOffset", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<PolygonOffsetCommand>(j.value("eventId", 0U),
+                (a.is_array() && a.size() >= 1) ? a[0].get<float>() : 0.0f,
+                (a.is_array() && a.size() >= 2) ? a[1].get<float>() : 0.0f);
+        }},
+        {"copyBufferSubData", [](const Json& j) -> CommandPtr {
+            const auto& a = j["args"];
+            return std::make_unique<CopyBufferSubDataCommand>(j.value("eventId", 0U),
+                a[0].get<uint32_t>(), a[1].get<uint32_t>(), a[2].get<uint64_t>(),
+                a[3].get<uint64_t>(), a[4].get<uint64_t>());
+        }},
 
         // --- resource lifecycle ---
         {"createBuffer", [](const Json& j) -> CommandPtr {
@@ -529,7 +571,6 @@ static const std::unordered_map<std::string, CommandParserFunc>& getCommandParse
 
         // --- uncaptured / unsupported (no-op) ---
         {"readPixels",    [](const Json& j) -> CommandPtr { return std::make_unique<NoOpCommand>(j.value("eventId", 0U), "readPixels"); }},
-        {"drawBuffers",   [](const Json& j) -> CommandPtr { return std::make_unique<NoOpCommand>(j.value("eventId", 0U), "drawBuffers"); }},
     };
     return parsers;
 }
@@ -781,6 +822,73 @@ bool CaptureLoader::parseState(const std::string&     directoryPath,
     if (j.contains("pixelStore") && j["pixelStore"].is_object())
         for (auto& [k, v] : j["pixelStore"].items())
             outState.m_pixelStoreParameters[k] = v.get<int32_t>();
+
+    // ──────────────── v2 additions ────────────────
+    outState.m_readFramebufferId = j.value("readFramebufferId", 0U);
+    outState.m_readBuffer        = j.value("readBuffer", 0x0405U);
+    if (j.contains("drawBuffers") && j["drawBuffers"].is_array())
+        for (const auto& b : j["drawBuffers"]) outState.m_drawBuffers.push_back(b.get<uint32_t>());
+
+    if (j.contains("uniformBufferBindings") && j["uniformBufferBindings"].is_object())
+        for (auto& [idx, b] : j["uniformBufferBindings"].items()) {
+            UboBindingCapture u;
+            u.m_bufferId = b.value("bufferId", 0U);
+            u.m_offset   = b.value("offset", (int64_t)0);
+            u.m_size     = b.value("size", (int64_t)0);
+            outState.m_uniformBufferBindings[idx] = u;
+        }
+    if (j.contains("samplerObjects") && j["samplerObjects"].is_object())
+        for (auto& [unit, sid] : j["samplerObjects"].items())
+            outState.m_samplerObjects[unit] = sid.get<uint32_t>();
+
+    if (j.contains("vertexBindingDivisors") && j["vertexBindingDivisors"].is_object())
+        for (auto& [k, v] : j["vertexBindingDivisors"].items())
+            outState.m_vertexBindingDivisors[k] = v.get<uint32_t>();
+
+    outState.m_blendEnabled = j.value("blendEnabled", false);
+    if (j.contains("blendColor") && j["blendColor"].is_array())
+        outState.m_blendColor = parseFloatArray(j["blendColor"]);
+
+    auto parseStencilFace = [](const Json& f, StencilFaceCapture& s) {
+        s.m_func        = f.value("func", 0x0207U);
+        s.m_ref         = f.value("ref", 0);
+        s.m_compareMask = f.value("compareMask", 0xFFFFFFFFU);
+        s.m_writeMask   = f.value("writeMask", 0xFFFFFFFFU);
+        s.m_sfail       = f.value("sfail", 0x1E00U);
+        s.m_dpfail      = f.value("dpfail", 0x1E00U);
+        s.m_dppass      = f.value("dppass", 0x1E00U);
+    };
+    outState.m_stencilTestEnabled = j.value("stencilTestEnabled", false);
+    if (j.contains("stencilFront")) parseStencilFace(j["stencilFront"], outState.m_stencilFront);
+    if (j.contains("stencilBack"))  parseStencilFace(j["stencilBack"],  outState.m_stencilBack);
+
+    outState.m_depthRangeNear = j.value("depthRangeNear", 0.0f);
+    outState.m_depthRangeFar  = j.value("depthRangeFar", 1.0f);
+
+    outState.m_scissorTestEnabled       = j.value("scissorTestEnabled", false);
+    outState.m_polygonOffsetFillEnabled = j.value("polygonOffsetFillEnabled", false);
+    outState.m_polygonOffsetFactor      = j.value("polygonOffsetFactor", 0.0f);
+    outState.m_polygonOffsetUnits       = j.value("polygonOffsetUnits", 0.0f);
+    outState.m_lineWidth                = j.value("lineWidth", 1.0f);
+    outState.m_multisampleEnabled       = j.value("multisampleEnabled", true);
+
+    auto parsePixelStore = [](const Json& p, PixelStoreCapture& s) {
+        s.m_swapBytes   = p.value("swapBytes", false);
+        s.m_lsbFirst    = p.value("lsbFirst", false);
+        s.m_rowLength   = p.value("rowLength", 0);
+        s.m_imageHeight = p.value("imageHeight", 0);
+        s.m_skipRows    = p.value("skipRows", 0);
+        s.m_skipPixels  = p.value("skipPixels", 0);
+        s.m_skipImages  = p.value("skipImages", 0);
+        s.m_alignment   = p.value("alignment", 4);
+    };
+    if (j.contains("pixelPack") || j.contains("pixelUnpack")) {
+        outState.m_hasPixelPackUnpack = true;
+        if (j.contains("pixelPack"))   parsePixelStore(j["pixelPack"],   outState.m_pixelPack);
+        if (j.contains("pixelUnpack")) parsePixelStore(j["pixelUnpack"], outState.m_pixelUnpack);
+    }
+    outState.m_pixelPackBuffer   = j.value("pixelPackBuffer", 0U);
+    outState.m_pixelUnpackBuffer = j.value("pixelUnpackBuffer", 0U);
 
     return true;
 }

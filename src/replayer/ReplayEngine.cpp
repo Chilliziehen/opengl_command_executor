@@ -142,3 +142,9 @@ unsigned int ReplayEngine::currentDrawFramebuffer() const {
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &fbo);
   return static_cast<unsigned int>(fbo);
 }
+
+unsigned int ReplayEngine::currentReadFramebuffer() const {
+  GLint fbo = 0;
+  glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &fbo);
+  return static_cast<unsigned int>(fbo);
+}

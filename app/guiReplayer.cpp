@@ -236,6 +236,10 @@ int main(int, char **) {
   ImGui_ImplGlfw_InitForOpenGL(g_window, true);
   ImGui_ImplOpenGL3_Init("#version 330");
 
+  // Auto-load a default capture so the window isn't blank on launch; the user
+  // can still pick another via "Load Capture...".
+  loadCapture(std::string(PROJECT_ROOT_DIR) + "/example/new_structured_capture");
+
   bool playing = false;
   double lastStepTime = 0.0;
   const double stepInterval = 0.05;
@@ -406,9 +410,20 @@ int main(int, char **) {
                   st.m_blend.m_blendEnabled ? "ON" : "off",
                   st.m_blend.m_colorMask[0], st.m_blend.m_colorMask[1],
                   st.m_blend.m_colorMask[2], st.m_blend.m_colorMask[3]);
+      ImGui::Text("Stencil    : %s   Scissor: %s",
+                  st.m_depthStencil.m_stencilTestEnabled ? "ON" : "off",
+                  st.m_rasterizer.m_scissorTestEnabled ? "ON" : "off");
+      ImGui::Separator();
+      ImGui::Text("UBO bindings (point: buffer @off,size):");
+      const auto &rb = st.m_resourceBindings;
+      for (size_t i = 0; i < rb.m_uniformBufferBindings.size(); ++i) {
+        const auto &ubo = rb.m_uniformBufferBindings[i];
+        if (ubo.has_value())
+          ImGui::Text("  [%zu] buf=%u @%lld,%lld", i, ubo->m_bufferId,
+                      (long long)ubo->m_offset, (long long)ubo->m_size);
+      }
       ImGui::Separator();
       ImGui::Text("Texture bindings (unit: tex2D/cube):");
-      const auto &rb = st.m_resourceBindings;
       for (size_t u = 0; u < rb.m_textureUnits.size(); ++u) {
         const auto &t2d = rb.m_textureUnits[u].binding(TextureTarget::Tex2D);
         const auto &tcb = rb.m_textureUnits[u].binding(TextureTarget::TexCube);

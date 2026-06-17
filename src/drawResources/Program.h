@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 /// Program descriptor matching an entry in the programs.json array
@@ -23,6 +24,11 @@ struct CaptureProgram {
 
     /// Whether the program linked successfully
     bool m_linked = false;
+
+    /// uniform block index → UBO binding point (v2 captures). When present, the
+    /// replayer applies glUniformBlockBinding with these instead of guessing.
+    /// Empty = not captured (fall back to index==binding heuristic).
+    std::unordered_map<uint32_t, uint32_t> m_uniformBlockBindings;
 };
 
 #endif // PROGRAM_H

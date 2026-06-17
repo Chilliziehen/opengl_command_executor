@@ -249,17 +249,20 @@ bool ResourceManager::linkProgram(const CaptureProgram& metadata,
         return false;
     }
 
-    // Assign each uniform block's binding point = its block index. The capture's
-    // glUniformBlockBinding() calls are init-time and aren't in the frame stream,
-    // so without this every block defaults to binding 0 (e.g. UnityPerDraw and
-    // UnityPerMaterial would both read the same UBO and geometry breaks). The
-    // capture's bindBufferBase/Range use binding points in block-declaration
-    // order, which matches the block index here.
-    GLint blockCount = 0;
-    glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_BLOCKS, &blockCount);
-    for (GLint blockIndex = 0; blockIndex < blockCount; ++blockIndex)
-        glUniformBlockBinding(programHandle, static_cast<GLuint>(blockIndex),
-                              static_cast<GLuint>(blockIndex));
+    // Assign uniform block → binding point. v2 captures record the real mapping
+    // in programs.json (uniformBlockBindings); use it when present. Otherwise
+    // fall back to binding==index — the capture's bindBufferBase/Range use
+    // binding points in block-declaration order, which matches the block index.
+    if (!metadata.m_uniformBlockBindings.empty()) {
+        for (const auto& [blockIndex, bindingPoint] : metadata.m_uniformBlockBindings)
+            glUniformBlockBinding(programHandle, blockIndex, bindingPoint);
+    } else {
+        GLint blockCount = 0;
+        glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_BLOCKS, &blockCount);
+        for (GLint blockIndex = 0; blockIndex < blockCount; ++blockIndex)
+            glUniformBlockBinding(programHandle, static_cast<GLuint>(blockIndex),
+                                  static_cast<GLuint>(blockIndex));
+    }
 
     return true;
 }
@@ -382,6 +385,79 @@ bool ResourceManager::restoreState(const FrameCapture& capture,
                         state.m_blendFunction.m_destinationAlpha);
     glBlendEquationSeparate(state.m_blendEquation.m_rgbMode,
                             state.m_blendEquation.m_alphaMode);
+
+    // ──────────────── v2 state ────────────────
+    // capabilities{} is typically empty in captures, so drive enables from the
+    // explicit booleans the v2 state provides.
+    auto setEnabled = [](GLenum cap, bool on) { if (on) glEnable(cap); else glDisable(cap); };
+
+    setEnabled(GL_BLEND, state.m_blendEnabled);
+    if (state.m_blendColor.size() >= 4)
+        glBlendColor(state.m_blendColor[0], state.m_blendColor[1],
+                     state.m_blendColor[2], state.m_blendColor[3]);
+
+    setEnabled(GL_SCISSOR_TEST, state.m_scissorTestEnabled);
+    setEnabled(GL_POLYGON_OFFSET_FILL, state.m_polygonOffsetFillEnabled);
+    glPolygonOffset(state.m_polygonOffsetFactor, state.m_polygonOffsetUnits);
+    glLineWidth(state.m_lineWidth);
+    setEnabled(GL_MULTISAMPLE, state.m_multisampleEnabled);
+
+    glDepthRange(static_cast<double>(state.m_depthRangeNear),
+                 static_cast<double>(state.m_depthRangeFar));
+
+    // stencil (front/back separate)
+    setEnabled(GL_STENCIL_TEST, state.m_stencilTestEnabled);
+    const auto& sf = state.m_stencilFront;
+    glStencilFuncSeparate(GL_FRONT, sf.m_func, sf.m_ref, sf.m_compareMask);
+    glStencilMaskSeparate(GL_FRONT, sf.m_writeMask);
+    glStencilOpSeparate(GL_FRONT, sf.m_sfail, sf.m_dpfail, sf.m_dppass);
+    const auto& sb = state.m_stencilBack;
+    glStencilFuncSeparate(GL_BACK, sb.m_func, sb.m_ref, sb.m_compareMask);
+    glStencilMaskSeparate(GL_BACK, sb.m_writeMask);
+    glStencilOpSeparate(GL_BACK, sb.m_sfail, sb.m_dpfail, sb.m_dppass);
+
+    // UBO bindings (frame-start; commands may re-bind per pass)
+    for (const auto& [idxStr, ubo] : state.m_uniformBufferBindings) {
+        if (ubo.m_bufferId == 0 || !hasMappedHandle(ResourceKind::Buffer, ubo.m_bufferId)) continue;
+        GLuint index = static_cast<GLuint>(std::stoul(idxStr));
+        GLuint buf = getMappedHandle(ResourceKind::Buffer, ubo.m_bufferId);
+        if (ubo.m_size > 0)
+            glBindBufferRange(GL_UNIFORM_BUFFER, index, buf,
+                              static_cast<GLintptr>(ubo.m_offset),
+                              static_cast<GLsizeiptr>(ubo.m_size));
+        else
+            glBindBufferBase(GL_UNIFORM_BUFFER, index, buf);
+    }
+
+    // sampler objects (unit → sampler id). We don't allocate GL sampler objects
+    // (none are created in the resource set), so only honour the "unbound" case;
+    // any non-zero id can't be mapped and is left at the default (0).
+    for (const auto& [unitStr, samplerId] : state.m_samplerObjects) {
+        if (samplerId == 0)
+            glBindSampler(static_cast<GLuint>(std::stoul(unitStr)), 0);
+    }
+
+    // pixel storage (v2 structured)
+    if (state.m_hasPixelPackUnpack) {
+        const auto& pk = state.m_pixelPack;
+        glPixelStorei(GL_PACK_SWAP_BYTES,   pk.m_swapBytes ? 1 : 0);
+        glPixelStorei(GL_PACK_LSB_FIRST,    pk.m_lsbFirst ? 1 : 0);
+        glPixelStorei(GL_PACK_ROW_LENGTH,   pk.m_rowLength);
+        glPixelStorei(GL_PACK_IMAGE_HEIGHT, pk.m_imageHeight);
+        glPixelStorei(GL_PACK_SKIP_ROWS,    pk.m_skipRows);
+        glPixelStorei(GL_PACK_SKIP_PIXELS,  pk.m_skipPixels);
+        glPixelStorei(GL_PACK_SKIP_IMAGES,  pk.m_skipImages);
+        glPixelStorei(GL_PACK_ALIGNMENT,    pk.m_alignment);
+        const auto& up = state.m_pixelUnpack;
+        glPixelStorei(GL_UNPACK_SWAP_BYTES,   up.m_swapBytes ? 1 : 0);
+        glPixelStorei(GL_UNPACK_LSB_FIRST,    up.m_lsbFirst ? 1 : 0);
+        glPixelStorei(GL_UNPACK_ROW_LENGTH,   up.m_rowLength);
+        glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, up.m_imageHeight);
+        glPixelStorei(GL_UNPACK_SKIP_ROWS,    up.m_skipRows);
+        glPixelStorei(GL_UNPACK_SKIP_PIXELS,  up.m_skipPixels);
+        glPixelStorei(GL_UNPACK_SKIP_IMAGES,  up.m_skipImages);
+        glPixelStorei(GL_UNPACK_ALIGNMENT,    up.m_alignment);
+    }
 
     // ---- capabilities ----
     for (const auto& [capability, enabled] : state.m_capabilities) {
@@ -525,14 +601,34 @@ bool ResourceManager::restoreFramebuffers(const FrameCapture& capture,
         }
     }
 
-    // Restore the frame-start FBO binding (0 = default framebuffer, routed
-    // through the override so a GUI host can keep the replay off the window).
-    if (capture.m_state.m_currentFramebufferId == 0) {
-        glBindFramebuffer(GL_FRAMEBUFFER, Command::defaultFramebuffer());
-    } else if (hasMappedHandle(ResourceKind::Framebuffer, capture.m_state.m_currentFramebufferId)) {
-        glBindFramebuffer(GL_FRAMEBUFFER,
-            getMappedHandle(ResourceKind::Framebuffer, capture.m_state.m_currentFramebufferId));
+    const CaptureState& state = capture.m_state;
+    auto fbHandle = [&](uint32_t id) -> GLuint {
+        if (id == 0) return Command::defaultFramebuffer();
+        return hasMappedHandle(ResourceKind::Framebuffer, id)
+                   ? getMappedHandle(ResourceKind::Framebuffer, id) : Command::defaultFramebuffer();
+    };
+
+    // Restore the frame-start draw/read FBO bindings (v2 records them separately;
+    // 0 routes through the override so the replay stays off the GUI window).
+    GLuint drawFbo = fbHandle(state.m_currentFramebufferId);
+    GLuint readFbo = fbHandle(state.m_readFramebufferId);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, drawFbo);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, readFbo);
+
+    // draw/read buffers apply to the bound FBO. Only meaningful for a real FBO
+    // (COLOR_ATTACHMENT* on the window default framebuffer is invalid).
+    if (drawFbo != 0 && !state.m_drawBuffers.empty()) {
+        std::vector<GLenum> bufs(state.m_drawBuffers.begin(), state.m_drawBuffers.end());
+        glDrawBuffers(static_cast<GLsizei>(bufs.size()), bufs.data());
     }
+    if (readFbo != 0)
+        glReadBuffer(state.m_readBuffer);
+
+    // PBO bindings (v2)
+    if (state.m_pixelPackBuffer != 0 && hasMappedHandle(ResourceKind::Buffer, state.m_pixelPackBuffer))
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, getMappedHandle(ResourceKind::Buffer, state.m_pixelPackBuffer));
+    if (state.m_pixelUnpackBuffer != 0 && hasMappedHandle(ResourceKind::Buffer, state.m_pixelUnpackBuffer))
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, getMappedHandle(ResourceKind::Buffer, state.m_pixelUnpackBuffer));
     return true;
 }
 

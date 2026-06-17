@@ -769,9 +769,9 @@
     "eventId": 62,
     "name": "clear",
     "args": [
-      1280
+      256
     ],
-    "mask": 1280,
+    "mask": 256,
     "framebufferId": 3
   },
   {

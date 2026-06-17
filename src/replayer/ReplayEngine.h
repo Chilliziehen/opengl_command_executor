@@ -59,6 +59,10 @@ public:
     /// target the most recent command wrote to). 0 = default framebuffer.
     unsigned int currentDrawFramebuffer() const;
 
+    /// GL handle of the framebuffer currently bound for reading (v2 captures
+    /// track draw/read separately). 0 = default framebuffer.
+    unsigned int currentReadFramebuffer() const;
+
     /// GL error string accumulated during the last step/seek, or "" if none.
     const std::string& lastGlErrors() const { return m_lastGlErrors; }
 

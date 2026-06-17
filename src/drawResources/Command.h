@@ -325,6 +325,60 @@ private:
     uint32_t m_drawMode, m_firstVertex, m_vertexCount, m_framebufferId;
 };
 
+class DrawElementsInstancedCommand final : public Command {
+public:
+    DrawElementsInstancedCommand(uint32_t eventId, uint32_t drawMode, uint32_t indexCount,
+                                 uint32_t indexType, uint32_t indexOffset,
+                                 uint32_t instanceCount, uint32_t framebufferId);
+    void execute() override;
+private:
+    uint32_t m_drawMode, m_indexCount, m_indexType, m_indexOffset, m_instanceCount, m_framebufferId;
+};
+
+class DrawArraysInstancedCommand final : public Command {
+public:
+    DrawArraysInstancedCommand(uint32_t eventId, uint32_t drawMode, uint32_t firstVertex,
+                               uint32_t vertexCount, uint32_t instanceCount, uint32_t framebufferId);
+    void execute() override;
+private:
+    uint32_t m_drawMode, m_firstVertex, m_vertexCount, m_instanceCount, m_framebufferId;
+};
+
+// ---- v2 state / misc commands ----
+class DrawBuffersCommand final : public Command {
+public:
+    DrawBuffersCommand(uint32_t eventId, std::vector<uint32_t> buffers);
+    void execute() override;
+private:
+    std::vector<uint32_t> m_buffers;
+};
+
+class ReadBufferCommand final : public Command {
+public:
+    ReadBufferCommand(uint32_t eventId, uint32_t mode);
+    void execute() override;
+private:
+    uint32_t m_mode;
+};
+
+class PolygonOffsetCommand final : public Command {
+public:
+    PolygonOffsetCommand(uint32_t eventId, float factor, float units);
+    void execute() override;
+private:
+    float m_factor, m_units;
+};
+
+class CopyBufferSubDataCommand final : public Command {
+public:
+    CopyBufferSubDataCommand(uint32_t eventId, uint32_t readTarget, uint32_t writeTarget,
+                             uint64_t readOffset, uint64_t writeOffset, uint64_t size);
+    void execute() override;
+private:
+    uint32_t m_readTarget, m_writeTarget;
+    uint64_t m_readOffset, m_writeOffset, m_size;
+};
+
 // ---- resource lifecycle ----
 class CreateResourceCommand final : public Command {
 public:
