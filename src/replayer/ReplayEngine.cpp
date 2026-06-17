@@ -81,10 +81,6 @@ bool ReplayEngine::reset(std::string &outError) {
 
 void ReplayEngine::executeOne(size_t index) {
   auto &cmd = m_capture.m_commands[index];
-  if (cmd->getEventId() == 130) {
-    int a = 0;
-    return;
-  }
   if (cmd)
     cmd->execute();
   for (GLenum e = glGetError(); e != GL_NO_ERROR; e = glGetError()) {
