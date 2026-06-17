@@ -48,6 +48,21 @@ public:
     static void     setDefaultFramebuffer(uint32_t glHandle);
     static uint32_t defaultFramebuffer();
 
+    // Sampler "pin" registry: samplers whose unit was set by a captured
+    // glUniform1i are trusted and never touched by the per-draw sampler fixup.
+    // (Reset per replay so re-created programs start fresh.)
+    static void clearSamplerPins();
+    static void pinSampler(uint32_t programHandle, int32_t location);
+    static bool isSamplerPinned(uint32_t programHandle, int32_t location);
+
+    // Per-texture-unit "active target": the GL target most recently bound to a
+    // unit (by bindTexture or state restore). Lets the sampler fixup tell what a
+    // unit is *really* meant for when both a 2D and a cube texture are bound to
+    // it. 0 = nothing recorded. Reset per replay.
+    static void clearUnitTargets();
+    static void setUnitActiveTarget(uint32_t unit, uint32_t glTarget);
+    static uint32_t unitActiveTarget(uint32_t unit);
+
 protected:
     static const std::string& captureDirectory() { return s_captureDirectory; }
 

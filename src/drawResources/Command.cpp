@@ -26,6 +26,32 @@ void Command::setDefaultFramebuffer(uint32_t glHandle) {
 }
 uint32_t Command::defaultFramebuffer() { return s_defaultFramebuffer; }
 
+// ---- sampler pin registry (samplers set by captured glUniform1i) ----
+static std::unordered_set<uint64_t> s_pinnedSamplers;
+static uint64_t samplerPinKey(uint32_t program, int32_t location) {
+  return (static_cast<uint64_t>(program) << 32) |
+         static_cast<uint32_t>(location);
+}
+void Command::clearSamplerPins() { s_pinnedSamplers.clear(); }
+void Command::pinSampler(uint32_t program, int32_t location) {
+  if (location >= 0) s_pinnedSamplers.insert(samplerPinKey(program, location));
+}
+bool Command::isSamplerPinned(uint32_t program, int32_t location) {
+  return s_pinnedSamplers.find(samplerPinKey(program, location)) !=
+         s_pinnedSamplers.end();
+}
+
+// ---- per-unit active (most-recently-bound) target ----
+static std::unordered_map<uint32_t, uint32_t> s_unitActiveTarget;
+void Command::clearUnitTargets() { s_unitActiveTarget.clear(); }
+void Command::setUnitActiveTarget(uint32_t unit, uint32_t glTarget) {
+  s_unitActiveTarget[unit] = glTarget;
+}
+uint32_t Command::unitActiveTarget(uint32_t unit) {
+  auto it = s_unitActiveTarget.find(unit);
+  return it == s_unitActiveTarget.end() ? 0u : it->second;
+}
+
 // Per-draw sampler fixup. WebGL sets sampler→unit via init-time glUniform1i
 // calls that aren't in the frame capture, so samplers default to unit 0. If the
 // texture currently bound at a sampler's unit doesn't match the sampler's kind
@@ -78,9 +104,23 @@ static void fixupSamplerBindings() {
     if (location < 0)
       continue;
 
-    auto unitMatches = [&](GLint unit) -> bool {
+    // Trust samplers whose unit was set by a captured glUniform1i.
+    if (Command::isSamplerPinned(static_cast<uint32_t>(program), location))
+      continue;
+
+    // Match a unit by its *active* (most-recently-bound) target. A unit can hold
+    // both a 2D and a cube texture at once (e.g. unit 0 keeps a stale 2D from
+    // state-restore while a pass binds a cube to it). The active target tells us
+    // what the unit is actually meant for at this draw, so a sampler2D won't
+    // latch onto a stale 2D (a black render target) and a samplerCube won't grab
+    // a leftover cube.
+    auto matchUnit = [&](GLint unit) -> bool {
+      uint32_t active = Command::unitActiveTarget(static_cast<uint32_t>(unit));
       if (wantCube)
-        return boundAt(unit, GL_TEXTURE_BINDING_CUBE_MAP) != 0;
+        return active == GL_TEXTURE_CUBE_MAP &&
+               boundAt(unit, GL_TEXTURE_BINDING_CUBE_MAP) != 0;
+      if (active != GL_TEXTURE_2D)
+        return false;
       GLuint h = boundAt(unit, GL_TEXTURE_BINDING_2D);
       if (h == 0)
         return false;
@@ -88,16 +128,15 @@ static void fixupSamplerBindings() {
                        : !Command::isDepthTexture(h);
     };
 
-    GLint currentUnit = 0;
-    glGetUniformiv(program, location, &currentUnit);
-    if (currentUnit >= 0 && currentUnit < kMaxUnits && unitMatches(currentUnit))
-      continue; // already correct — leave it
+    GLint chosen = -1;
+    for (GLint unit = 0; unit < kMaxUnits && chosen < 0; ++unit)
+      if (matchUnit(unit)) chosen = unit;
 
-    for (GLint unit = 0; unit < kMaxUnits; ++unit) {
-      if (unitMatches(unit)) {
-        glUniform1i(location, unit);
-        break;
-      }
+    if (chosen >= 0) {
+      GLint currentUnit = -1;
+      glGetUniformiv(program, location, &currentUnit);
+      if (currentUnit != chosen)
+        glUniform1i(location, chosen);
     }
   }
   glActiveTexture(savedActive);
@@ -287,6 +326,8 @@ void BindTextureCommand::execute() {
   glActiveTexture(GL_TEXTURE0 + m_unit);
   glBindTexture(m_target,
                 getMappedHandleOr(ResourceKind::Texture, m_textureId));
+  // Record what this unit is now "really" for, so the sampler fixup can pick it.
+  setUnitActiveTarget(m_unit, m_target);
 }
 
 ActiveTextureCommand::ActiveTextureCommand(uint32_t eventId, uint32_t unit)
@@ -841,8 +882,12 @@ void UniformSamplerCommand::execute() {
   GLuint program = getMappedHandle(ResourceKind::Program, m_programId);
   glUseProgram(program);
   GLint location = getUniformLocationFlexible(program, m_uniformName);
-  if (location >= 0)
+  if (location >= 0) {
     glUniform1i(location, static_cast<GLint>(m_textureUnit));
+    // This sampler unit is authoritative (came from the capture); the per-draw
+    // fixup must not second-guess it.
+    Command::pinSampler(static_cast<uint32_t>(program), location);
+  }
 }
 
 // ---- framebuffer ----

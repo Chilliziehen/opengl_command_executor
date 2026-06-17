@@ -1,0 +1,36 @@
+Capture path: example/new_structured_capture
+glad loaded GL 3.3
+GL Vendor   : Intel
+GL Renderer : Intel(R) Arc(TM) Graphics
+GL Version  : 3.3.0 - Build 32.0.101.8243
+
+========== Capture Loaded ==========
+  format       : tjrelic.wx.capture
+  frameIndex   : 7
+  canvas       : 2832x1281
+  buffers      : 69
+  textures     : 13
+  shaders      : 12
+  programs     : 6
+  vertexArrays : 1
+  framebuffers : 3
+  commands     : 175
+
+========== Allocating GPU Resources ==========
+  All 104 GPU objects created.
+
+========== Uploading Resources & Restoring State ==========
+  Resources uploaded and frame-start state restored.
+
+========== Executing Commands ==========
+  Executed 175 commands.
+  No GL errors.
+  Framebuffer size: 2564x1281
+  Clear color RGB = (0,0,0)
+  Non-background pixels: 3284484 / 3284484
+  Wrote screenshot to C:/Users/30367/AppData/Local/Temp/replay_fixed.ppm
+
+========== Controls ==========
+  ESC      — exit
+  R        — re-execute all commands
+  SPACE    — single-step next command

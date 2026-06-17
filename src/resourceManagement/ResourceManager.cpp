@@ -131,6 +131,13 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
                          static_cast<GLint>(metadata.m_internalFormat),
                          w, h, 0, format, type, nullptr);
         }
+        // Render targets are single-level; default to a non-mipmap filter so a
+        // later pass that samples them (post / blit) isn't mip-incomplete →
+        // black. Captured parameters (if any) override below.
+        glTexParameteri(metadata.m_target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(metadata.m_target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(metadata.m_target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(metadata.m_target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         for (const auto& [key, val] : metadata.m_parameters) {
             GLenum parameterName = static_cast<GLenum>(std::stoul(key));
             glTexParameteri(metadata.m_target, parameterName, val);
@@ -154,6 +161,7 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
 
     // Skip image definition when client format/type are missing (e.g. some
     // depth/stencil cube maps) — glTexImage2D would raise GL_INVALID_ENUM.
+    bool defined = false;
     if (format != 0 && type != 0) {
         if (metadata.m_target == static_cast<uint32_t>(GL_TEXTURE_CUBE_MAP)) {
             // A cube map must be defined per-face; glTexImage2D(GL_TEXTURE_CUBE_MAP,…)
@@ -171,6 +179,29 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
                          uploadWidth, uploadHeight, 0,
                          format, type, pixelData);
         }
+        defined = true;
+    }
+
+    // The capture rarely records sampler parameters (WebGL sets them with
+    // gl.texParameter calls that aren't in the frame). Without them a texture
+    // keeps GL's default GL_TEXTURE_MIN_FILTER = GL_NEAREST_MIPMAP_LINEAR, which
+    // needs a full mip chain — but we only uploaded level 0. That makes the
+    // texture *mip-incomplete*, so every texture()/textureLod() read returns
+    // black (0,0,0,1). For a lit shader that zeros the whole shaded term
+    // (albedo, SH·albedo, IBL), leaving only the albedo-independent specular
+    // highlight — objects render as near-black silhouettes. Generate a mip chain
+    // and apply trilinear defaults so single-level captures sample correctly;
+    // any captured parameters below still override these.
+    if (defined) {
+        glGenerateMipmap(metadata.m_target);
+        glTexParameteri(metadata.m_target, GL_TEXTURE_MIN_FILTER,
+                        GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(metadata.m_target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(metadata.m_target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(metadata.m_target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (metadata.m_target == static_cast<uint32_t>(GL_TEXTURE_CUBE_MAP))
+            glTexParameteri(metadata.m_target, GL_TEXTURE_WRAP_R,
+                            GL_CLAMP_TO_EDGE);
     }
 
     for (const auto& [key, val] : metadata.m_parameters) {
@@ -320,6 +351,7 @@ bool ResourceManager::restoreState(const FrameCapture& capture,
             if (const TextureWrapper* tex = capture.findTexture(textureCaptureId))
                 target = static_cast<GLenum>(tex->m_target);
             glBindTexture(target, getMappedHandle(ResourceKind::Texture, textureCaptureId));
+            Command::setUnitActiveTarget(static_cast<uint32_t>(unit), target);
         } else if (textureCaptureId == 0) {
             glBindTexture(GL_TEXTURE_2D, 0);
         }

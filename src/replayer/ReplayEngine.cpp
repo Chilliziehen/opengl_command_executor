@@ -58,6 +58,8 @@ bool ReplayEngine::reset(std::string &outError) {
   }
   // Release any GL objects from a previous run, then rebuild the frame-start
   // state from scratch.
+  Command::clearSamplerPins();  // re-established as uniform1i commands replay
+  Command::clearUnitTargets();  // re-established as state-restore + bindTexture replay
   ResourceAllocator::deleteAllResources(m_capture);
   if (!ResourceAllocator::allocateAllResources(m_capture, outError))
     return false;
