@@ -37,7 +37,7 @@ require(['vs/editor/editor.main'], function () {
     ],
 
     typeKeywords: [
-      'float', 'int', 'bool', 'vec2', 'vec3', 'vec4', 'ivec2', 'ivec3', 'ivec4',
+      'float', 'int', 'vec2', 'vec3', 'vec4', 'ivec2', 'ivec3', 'ivec4',
       'bvec2', 'bvec3', 'bvec4', 'mat2', 'mat3', 'mat4', 'mat2x2', 'mat2x3', 'mat2x4',
       'mat3x2', 'mat3x3', 'mat3x4', 'mat4x2', 'mat4x3', 'mat4x4',
       'sampler2D', 'sampler3D', 'samplerCube', 'sampler2DShadow', 'sampler2DArray',
