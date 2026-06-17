@@ -1,0 +1,13 @@
+{
+  "name": "shader-json-editor",
+  "version": "1.0.0",
+  "description": "GLSL shader editor for shaders.json files",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^33.0.0",
+    "monaco-editor": "^0.52.0"
+  }
+}
