@@ -4,6 +4,7 @@ let selectedIndex = -1;      // Currently selected shader index
 let dirtyFlags = new Set();  // Indices of modified shaders
 let currentFilePath = null;  // Path to currently open file (for status bar)
 let editor = null;           // Monaco editor instance
+var busy = false;            // Guard against overlapping async operations
 
 // --- Constants ---
 var SHADER_TYPE_MAP = {
@@ -188,7 +189,7 @@ require(['vs/editor/editor.main'], function () {
 
   // Wire up toolbar buttons (after Monaco is ready)
   document.getElementById('btn-open').addEventListener('click', handleOpen);
-  document.getElementById('btn-save').addEventListener('click', handleSave);
+  document.getElementById('btn-save').addEventListener('click', function () { handleSave(false); });
   document.getElementById('btn-save-as').addEventListener('click', handleSaveAs);
 });
 
@@ -214,9 +215,7 @@ function renderShaderList() {
         '</div>' +
       '</div>';
 
-    item.addEventListener('click', (function (idx) {
-      return function () { selectShader(idx); };
-    })(index));
+    item.addEventListener('click', function () { selectShader(index); });
     listEl.appendChild(item);
   });
 }
@@ -252,71 +251,65 @@ async function checkUnsavedAndProceed() {
 }
 
 async function handleOpen() {
+  if (busy) return;
   if (!(await checkUnsavedAndProceed())) return;
+  busy = true;
+  try {
+    var result = await window.shaderAPI.openFile();
+    if (result.canceled) return;
 
-  var result = await window.shaderAPI.openFile();
-  if (result.canceled) return;
+    if (!result.success) {
+      alert('Error: ' + result.error);
+      return;
+    }
 
-  if (!result.success) {
-    alert('Error: ' + result.error);
-    return;
+    currentFilePath = result.filePath;
+    shaders = result.shaders;
+    dirtyFlags.clear();
+    selectedIndex = shaders.length > 0 ? 0 : -1;
+
+    if (editor && selectedIndex >= 0) {
+      editor.setValue(shaders[selectedIndex].source);
+    } else if (editor) {
+      editor.setValue('');
+    }
+
+    updateStatusBar();
+    renderShaderList();
+  } finally {
+    busy = false;
   }
-
-  currentFilePath = result.filePath;
-  shaders = result.shaders;
-  dirtyFlags.clear();
-  selectedIndex = shaders.length > 0 ? 0 : -1;
-
-  if (editor && selectedIndex >= 0) {
-    editor.setValue(shaders[selectedIndex].source);
-  } else if (editor) {
-    editor.setValue('');
-  }
-
-  updateStatusBar();
-  renderShaderList();
 }
 
-async function handleSave() {
+async function handleSave(isSaveAs) {
+  if (busy) return;
   // Save current editor content to shaders array
   if (selectedIndex >= 0 && editor) {
     shaders[selectedIndex].source = editor.getValue();
   }
+  busy = true;
+  try {
+    var api = isSaveAs ? window.shaderAPI.saveFileAs : window.shaderAPI.saveFile;
+    var result = await api(shaders);
 
-  var result = await window.shaderAPI.saveFile(shaders);
+    if (result.canceled) return;
 
-  if (result.canceled) return;
+    if (!result.success) {
+      alert('Error: ' + result.error);
+      return;
+    }
 
-  if (!result.success) {
-    alert('Error: ' + result.error);
-    return;
+    currentFilePath = result.filePath;
+    dirtyFlags.clear();
+    renderShaderList();
+    updateStatusBar();
+  } finally {
+    busy = false;
   }
-
-  currentFilePath = result.filePath;
-  dirtyFlags.clear();
-  renderShaderList();
-  updateStatusBar();
 }
 
-async function handleSaveAs() {
-  // Save current editor content to shaders array
-  if (selectedIndex >= 0 && editor) {
-    shaders[selectedIndex].source = editor.getValue();
-  }
-
-  var result = await window.shaderAPI.saveFileAs(shaders);
-
-  if (result.canceled) return;
-
-  if (!result.success) {
-    alert('Error: ' + result.error);
-    return;
-  }
-
-  currentFilePath = result.filePath;
-  dirtyFlags.clear();
-  renderShaderList();
-  updateStatusBar();
+function handleSaveAs() {
+  handleSave(true);
 }
 
 function updateStatusBar() {
