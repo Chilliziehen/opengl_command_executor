@@ -1,0 +1,124 @@
+@startuml FrameReplayer_PackageDiagram
+' =============================================================================
+' Package Diagram — drawCommandsGL Frame Replayer
+' =============================================================================
+' Shows module/package structure, layering, and dependency direction.
+' Layers (top → bottom): Application → CaptureLoader → DataModel → GPU Resource Management → OpenGL
+' External dependencies: glfw, glad, glm, nlohmann_json (thirdparty/)
+' =============================================================================
+
+skinparam packageStyle rectangle
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 13
+
+title Frame Capture Replayer — Package Architecture
+
+' ── External / Third-party ──────────────────────────────────────────────────
+package "thirdparty/" as Thirdparty <<External>> #E8E8E8 {
+    package "glfw\n(window + GL context)" as GLFW #ECEFF1
+    package "glad\n(GL loader)" as GLAD #ECEFF1
+    package "glm\n(math library)" as GLM #ECEFF1
+    package "nlohmann_json\n(JSON parser)" as JSON #ECEFF1
+}
+
+' ── Application Layer ───────────────────────────────────────────────────────
+package "test/\n(test executables)" as TestLayer #FFF3E0 {
+    rectangle "testReplayCapture\n(full replay)" as TestReplay
+    rectangle "testLoadCapture\n(load only)" as TestLoad
+    rectangle "testShaderTranslate\n(shader translate)" as TestShader
+}
+
+' ── Capture Loader Layer ────────────────────────────────────────────────────
+package "src/framecapture/\n(capture I/O)" as CaptureLayer #E3F2FD {
+    rectangle "CaptureLoader\nJSON → FrameCapture" as CaptureLoader
+    rectangle "FrameCapture\n(resource aggregator)" as FrameCapture
+}
+
+' ── Data Model Layer ────────────────────────────────────────────────────────
+package "src/drawResources/\n(data descriptors)" as DataLayer #E8F5E9 {
+    rectangle "CaptureTypes\n(common types + GL enums)" as CaptureTypes
+    rectangle "Manifest\n(CaptureManifest)" as Manifest
+    rectangle "Buffer\n(CaptureBuffer)" as Buffer
+    rectangle "Texture\n(TextureWrapper)" as Texture
+    rectangle "Shader\n(CaptureShader)" as Shader
+    rectangle "Program\n(CaptureProgram)" as Program
+    rectangle "VertexArrayObject\n(CaptureVAO)" as VAO
+    rectangle "Framebuffer\n(CaptureFramebuffer)" as Framebuffer
+    rectangle "State\n(CaptureState)" as State
+    rectangle "Command\n(polymorphic GL commands)" as Command
+}
+
+' ── GPU Resource Management Layer ───────────────────────────────────────────
+package "src/resourceManagement/\n(GPU lifecycle)" as ResourceLayer #F3E5F5 {
+    rectangle "ResourceAllocator\n(glGen* → GL handles)" as Allocator
+    rectangle "ResourceManager\n(upload + state restore)" as Manager
+}
+
+' ── ID Mapping Layer ────────────────────────────────────────────────────────
+package "src/mappers/\n(capture-id ↔ GL-handle)" as MapperLayer #FFF9C4 {
+    rectangle "UniversalDMapper\n(bidirectional map singleton)" as Mapper
+}
+
+' ── Shader Translation Layer ────────────────────────────────────────────────
+package "src/shaderTranslation/\n(GLSL 300 es → 410 core)" as ShaderLayer #FCE4EC {
+    rectangle "ShaderInterpreter\n(regex-based translation)" as ShaderXlate
+}
+
+' ── Core / Infrastructure ───────────────────────────────────────────────────
+package "src/core/\n(infrastructure)" as CoreLayer #ECEFF1 {
+    rectangle "Singleton\n(CRTP base)" as Singleton
+}
+
+' ── Data Flow Direction: top → bottom ───────────────────────────────────────
+' Test executables depend on everything
+TestLayer ..> CaptureLayer
+TestLayer ..> ResourceLayer
+TestLayer ..> ShaderLayer
+TestLayer ..> GLFW
+TestLayer ..> GLAD
+
+' CaptureLoader reads JSON → populates data descriptors
+CaptureLoader ..> DataLayer
+CaptureLoader ..> FrameCapture
+
+' FrameCapture owns all data descriptors
+FrameCapture ..> DataLayer
+
+' Resource layer depends on data model + mapper + shader translation
+ResourceLayer ..> DataLayer
+ResourceLayer ..> MapperLayer
+ResourceLayer ..> ShaderLayer
+ResourceLayer ..> GLAD
+
+' Command execution depends on mapper + allocator
+Command ..> MapperLayer
+Command ..> ResourceLayer
+Command ..> GLAD
+
+' Shader translation has no internal dependencies
+ShaderLayer ..> GLAD
+
+' Mapper depends on Singleton
+MapperLayer ..> CoreLayer
+
+' All GL calls go through glad
+ResourceLayer ..> GLAD
+
+' External dependencies
+CaptureLoader ..> JSON
+TestLayer ..> GLFW
+TestLayer ..> GLAD
+
+' ── Legend ──────────────────────────────────────────────────────────────────
+legend right
+  | <#FFF3E0>  Application / Test  |
+  | <#E3F2FD>  Capture I/O         |
+  | <#E8F5E9>  Data Model          |
+  | <#F3E5F5>  Resource Management |
+  | <#FFF9C4>  ID Mapping          |
+  | <#FCE4EC>  Shader Translation  |
+  | <#ECEFF1>  Infrastructure      |
+  | <#E8E8E8>  External            |
+endlegend
+
+@enduml

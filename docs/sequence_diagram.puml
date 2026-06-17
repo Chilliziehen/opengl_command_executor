@@ -1,0 +1,349 @@
+@startuml FrameReplayer_SequenceDiagram
+' =============================================================================
+' Sequence Diagram — Frame Capture Replay Lifecycle
+' =============================================================================
+' Shows:
+'   Phase 1: Capture loading (JSON → FrameCapture, no GL context needed)
+'   Phase 2: GL context creation (GLFW window + glad)
+'   Phase 3: GPU resource allocation (glGen* for every captured resource)
+'   Phase 4: Resource upload + state restore (full init pipeline)
+'   Phase 5: Command replay (iterate m_commands, polymorphic execute())
+'   Phase 6: Render loop (continuous re-execute + swap)
+'   Phase 7: Teardown (delete GL objects, clear mappings)
+' =============================================================================
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 13
+skinparam ParticipantPadding 30
+skinparam BoxPadding 10
+skinparam SequenceBoxBorderColor #333333
+
+title Frame Capture Replay — Complete Lifecycle Sequence
+
+actor User
+
+box "External" #E8E8E8
+    participant "GLFW\n(window + context)" as GLFW
+    participant "OpenGL\n(via glad)" as GL
+end box
+
+box "Application\n(testReplayCapture)" #FFF3E0
+    participant "main()" as Main
+end box
+
+box "Capture I/O\n(src/framecapture)" #E3F2FD
+    participant "CaptureLoader" as Loader
+    participant "FrameCapture" as FrameCap
+end box
+
+box "Shader Translation\n(src/shaderTranslation)" #FCE4EC
+    participant "ShaderInterpreter" as ShaderXlate
+end box
+
+box "Resource Management\n(src/resourceManagement)" #F3E5F5
+    participant "ResourceAllocator" as Allocator
+    participant "ResourceManager" as ResMgr
+end box
+
+box "ID Mapping\n(src/mappers)" #FFF9C4
+    participant "ResourceMapper\n(UniversalDMapper)" as Mapper
+end box
+
+box "Command Replay\n(src/drawResources)" #E8F5E9
+    participant "Command\n(polymorphic list)" as Cmd
+end box
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' Phase 1: Capture Loading (pure CPU, no GL)
+' ═══════════════════════════════════════════════════════════════════════════════
+== Phase 1: Capture Loading (CPU only, no GL context needed) ==
+
+User -> Main : testReplayCapture [capture_directory]
+Main -> Main : parse args,\ndefault: example/.../frame0
+
+Main -> Loader : loadFromDirectory(capturePath, capture, error)
+
+group CaptureLoader::loadFromDirectory
+    Loader -> Loader : parseManifest("manifest.json")
+    note right: Reads format, version, canvas size,\nfile index, diagnostics...
+
+    Loader -> Loader : parseBuffers(manifest)\n→ CaptureBuffer[0..N]
+    Loader -> Loader : parseTextures(manifest)\n→ TextureWrapper[0..N]
+    Loader -> Loader : parseShaders("shaders.json")\n→ CaptureShader[0..N]
+    Loader -> Loader : parsePrograms("programs.json")\n→ CaptureProgram[0..N]
+    Loader -> Loader : parseVertexArrays("vaos.json")\n→ CaptureVAO[0..N]
+    Loader -> Loader : parseFramebuffers(\"framebuffers.json\")\n→ CaptureFramebuffer[0..N]
+    Loader -> Loader : parseState("state.json")\n→ CaptureState
+    Loader -> Loader : parseCommands("commands.json")\n→ CommandPtr[0..N]
+
+    Loader -> FrameCap : populate all members
+    note right: m_manifest, m_buffers[], m_textures[],\nm_shaders[], m_programs[], m_vertexArrays[],\nm_framebuffers[], m_state, m_commands[]
+
+    Loader --> Main : true (success)
+end
+
+Main -> Main : read canvas size from\ncapture.m_manifest.m_canvas
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' Phase 2: GL Context Creation
+' ═══════════════════════════════════════════════════════════════════════════════
+== Phase 2: GL Context Creation ==
+
+Main -> GLFW : glfwInit()
+Main -> GLFW : glfwCreateWindow(canvas.w, canvas.h,\n"Capture Replay", ...)
+note right: OpenGL 3.3 Core Profile
+Main -> GLFW : glfwMakeContextCurrent(window)
+Main -> GL : gladLoadGL()
+note right: glad loads all GL 3.3 entry points
+Main -> Main : printGlInfo()
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' Phase 3: GPU Resource Allocation
+' ═══════════════════════════════════════════════════════════════════════════════
+== Phase 3: GPU Resource Allocation ==
+
+Main -> Allocator : allocateAllResources(capture, error)
+
+loop For each resource type in FrameCapture
+    Allocator -> Allocator : allocateBuffer(CaptureBuffer)
+    Allocator -> GL : glGenBuffers(1, &handle)
+    Allocator -> Mapper : addMappedHandle(Buffer, captureId, glHandle)
+    note right: capture-id → GL-handle\n双向映射
+
+    Allocator -> Allocator : allocateTexture(TextureWrapper)
+    Allocator -> GL : glGenTextures(1, &handle)
+    Allocator -> Mapper : addMappedHandle(Texture, captureId, glHandle)
+
+    Allocator -> Allocator : allocateShader(CaptureShader)
+    Allocator -> GL : glCreateShader(type)
+    Allocator -> Mapper : addMappedHandle(Shader, captureId, glHandle)
+
+    Allocator -> Allocator : allocateProgram(CaptureProgram)
+    Allocator -> GL : glCreateProgram()
+    Allocator -> Mapper : addMappedHandle(Program, captureId, glHandle)
+
+    Allocator -> Allocator : allocateVertexArray(CaptureVAO)
+    Allocator -> GL : glGenVertexArrays(1, &handle)
+    Allocator -> Mapper : addMappedHandle(VertexArray, captureId, glHandle)
+
+    Allocator -> Allocator : allocateFramebuffer(CaptureFramebuffer)
+    Allocator -> GL : glGenFramebuffers(1, &handle)
+    Allocator -> Mapper : addMappedHandle(Framebuffer, captureId, glHandle)
+end
+
+Allocator --> Main : true
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' Phase 4: Resource Upload + State Restore
+' ═══════════════════════════════════════════════════════════════════════════════
+== Phase 4: Resource Upload & State Restore ==
+
+Main -> ResMgr : uploadAllResources(capture, capturePath, error)
+
+group ResourceManager::uploadAllResources (ordered pipeline)
+    ResMgr -> ResMgr : ensureDefaultVertexArray()
+    note right: Core profile has no usable default VAO.\nCreate a synthetic VAO for capture id 0.
+
+    ResMgr -> ResMgr : collectAttributeBindings(capture)
+    note right: Scans VAOs, state snapshot,\nand vertexAttribPointer commands\nto build name→index map.
+
+    ' -- Step 1: Buffers --
+    group Step 1: Upload Buffers
+        loop For each CaptureBuffer
+            ResMgr -> Mapper : getMappedHandle(Buffer, id)
+            ResMgr -> GL : glBindBuffer(GL_COPY_WRITE_BUFFER, handle)
+            ResMgr -> ResMgr : readBinaryFile(dataPath)
+            ResMgr -> GL : glBufferData(target, size, data, usage)
+        end
+    end
+
+    ' -- Step 2: Textures --
+    group Step 2: Upload Textures
+        loop For each TextureWrapper
+            ResMgr -> Mapper : getMappedHandle(Texture, id)
+            ResMgr -> GL : glBindTexture(target, handle)
+            alt isRenderTarget (FBO attachment)
+                ResMgr -> GL : glTexImage2D(width, height, nullptr)
+                note right: Allocate at FULL resolution.\nFrame renders into it later.
+            else Sampled texture
+                ResMgr -> ResMgr : readBinaryFile(dataPath)
+                ResMgr -> GL : glTexImage2D(capturedW, capturedH, pixelData)
+                note right: Upload captured (possibly\ndownsampled) image data.
+            end
+            ResMgr -> GL : glTexParameteri(...)\n(for each parameter)
+        end
+    end
+
+    ' -- Step 3: Shaders (compile via translation) --
+    group Step 3: Compile Shaders
+        loop For each CaptureShader
+            ResMgr -> ShaderXlate : translateInPlace(glslEs300Source, error)
+            note right: GLSL ES 3.0 → GLSL 410 core:\n- Replace #version\n- Remove precision qualifiers\n- Remove #extension directives\n- Add layout(std140) to UBOs
+            ShaderXlate --> ResMgr : translated source
+            ResMgr -> Mapper : getMappedHandle(Shader, id)
+            ResMgr -> GL : glShaderSource(handle, translated)
+            ResMgr -> GL : glCompileShader(handle)
+            ResMgr -> GL : glGetShaderiv(GL_COMPILE_STATUS)
+        end
+    end
+
+    ' -- Step 4: Programs (link with attribute bindings) --
+    group Step 4: Link Programs
+        loop For each CaptureProgram
+            ResMgr -> Mapper : getMappedHandle(Program, id)
+            loop For each attached shader
+                ResMgr -> Mapper : getMappedHandle(Shader, shaderId)
+                ResMgr -> GL : glAttachShader(program, shader)
+            end
+            loop For each attribute binding
+                ResMgr -> GL : glBindAttribLocation(program, index, name)
+                note right: Pin vertex attribute locations\nbefore linking, so VAO indices\nmatch shader inputs.
+            end
+            ResMgr -> GL : glLinkProgram(program)
+            ResMgr -> GL : glGetProgramiv(GL_LINK_STATUS)
+        end
+    end
+
+    ' -- Step 5: Restore GL State --
+    group Step 5: Restore GL State
+        ResMgr -> GL : glUseProgram(currentProgram)
+        ResMgr -> GL : glActiveTexture(unit) + glBindTexture(...)
+        ResMgr -> GL : glUniform1i(samplerLocations)
+        ResMgr -> GL : glViewport(x, y, w, h)
+        ResMgr -> GL : glClearColor / glClearDepth / glClearStencil
+        ResMgr -> GL : glDepthMask / glDepthFunc
+        ResMgr -> GL : glCullFace / glFrontFace
+        ResMgr -> GL : glColorMask
+        ResMgr -> GL : glScissor
+        ResMgr -> GL : glBlendFuncSeparate / glBlendEquationSeparate
+        ResMgr -> GL : glEnable / glDisable for each capability
+        ResMgr -> GL : glPixelStorei for each pixel store param
+    end
+
+    ' -- Step 6: Restore FBOs --
+    group Step 6: Restore Framebuffers
+        loop For each CaptureFramebuffer
+            ResMgr -> Mapper : getMappedHandle(Framebuffer, id)
+            ResMgr -> GL : glBindFramebuffer(GL_FRAMEBUFFER, fbo)
+            loop For each attachment
+                ResMgr -> Mapper : getMappedHandle(Texture, texId)
+                ResMgr -> GL : glFramebufferTexture2D(attachment, target, texture, level)
+            end
+        end
+        ResMgr -> GL : glBindFramebuffer(GL_FRAMEBUFFER, currentFramebufferId)
+    end
+
+    ' -- Step 7: Restore VAOs --
+    group Step 7: Restore Vertex Arrays
+        loop For each CaptureVAO
+            ResMgr -> Mapper : getMappedHandle(VertexArray, id)
+            ResMgr -> GL : glBindVertexArray(vao)
+            alt has EBO
+                ResMgr -> Mapper : getMappedHandle(Buffer, eboId)
+                ResMgr -> GL : glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+            end
+            loop For each vertex attribute
+                ResMgr -> Mapper : getMappedHandle(Buffer, vboId)
+                ResMgr -> GL : glBindBuffer(GL_ARRAY_BUFFER, vbo)
+                ResMgr -> GL : glVertexAttribPointer(index, size, type, norm, stride, offset)
+                ResMgr -> GL : glEnableVertexAttribArray / glDisableVertexAttribArray
+            end
+        end
+    end
+end
+
+ResMgr --> Main : true (all resources uploaded + state restored)
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' Phase 5: Command Replay
+' ═══════════════════════════════════════════════════════════════════════════════
+== Phase 5: Command Replay (initial execution) ==
+
+Main -> Cmd : setCaptureDirectory(capturePath)
+note right: Commands need the capture directory\nto resolve relative upload paths\n(e.g. BufferData, TextureImage).
+
+loop For each CommandPtr in capture.m_commands
+    Main -> Cmd : cmd->execute()
+
+    alt State commands (no mapper)
+        Cmd -> GL : glViewport / glEnable / glClear / glBlendFunc / etc.
+    else Resource-binding commands
+        Cmd -> Mapper : getMappedHandleOr(kind, captureId, fallback=0)
+        note right: Safe lookup — returns 0 (no-op)\nif resource not found,\npreventing errors from\nmissing/dangling IDs.
+        Cmd -> GL : glUseProgram / glBindFramebuffer /\nglBindBuffer / glBindTexture / etc.
+    else Draw commands
+        Cmd -> GL : glDrawElements / glDrawArrays
+    else Resource lifecycle
+        Cmd -> Mapper : hasMappedHandle(kind, id)
+        Cmd -> Allocator : allocate* / delete* (on-demand)
+        Cmd -> GL : glGen* / glDelete*
+    else Data upload
+        Cmd -> Mapper : getMappedHandle(kind, id)
+        Cmd -> Cmd : readBinaryFile(uploadPath)
+        Cmd -> GL : glBufferData / glTexImage2D / etc.
+    else Shader / Program
+        Cmd -> GL : glShaderSource + glCompileShader /\nglAttachShader + glLinkProgram
+    else Uniforms
+        Cmd -> GL : glUseProgram + glGetUniformLocation\n+ glUniform*
+        note right: UniformCommand queries the real GL uniform\ntype (glGetActiveUniformsiv) to pick the\ncorrect glUniform* setter — a snapshot\nuniform4fv may actually be a mat4.
+    end
+
+    Main -> GL : glGetError()
+    note right: Check for GL errors after each command.\nAttrbutable: logs eventId + commandName.
+end
+
+Main -> Main : count non-background pixels
+note right: Read back the back buffer with glReadPixels.\nCompare against captured clear color.\nReports: "Non-background pixels: X / total".
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' Phase 6: Render Loop
+' ═══════════════════════════════════════════════════════════════════════════════
+== Phase 6: Render Loop (continuous playback) ==
+
+loop while !glfwWindowShouldClose(window)
+    loop For each CommandPtr in capture.m_commands
+        Main -> Cmd : cmd->execute()  (replay all commands)
+    end
+
+    Main -> GLFW : glfwSwapBuffers(window)
+    Main -> GLFW : glfwPollEvents()
+
+    alt User presses ESC
+        Main -> GLFW : glfwSetWindowShouldClose(window, true)
+    end
+    alt User presses R
+        note right: Re-execute all commands from start
+    end
+    alt User presses Space
+        note right: Single-step — execute one command\nper press
+    end
+end
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' Phase 7: Teardown
+' ═══════════════════════════════════════════════════════════════════════════════
+== Phase 7: Teardown ==
+
+Main -> Allocator : deleteAllResources(capture)
+
+group ResourceAllocator::deleteAllResources
+    loop For each buffer, texture, shader, program, VAO, FBO
+        Allocator -> Mapper : getMappedHandle(kind, captureId)
+        Allocator -> GL : glDeleteBuffers / glDeleteTextures /\nglDeleteShader / glDeleteProgram /\nglDeleteVertexArrays / glDeleteFramebuffers
+        Allocator -> Mapper : removeMappedHandle(kind, captureId)
+    end
+    Allocator -> Allocator : deleteVertexArray(0)
+    note right: Delete synthetic default VAO (id 0).
+    Allocator -> Mapper : clearAllMappedHandles()
+    note right: Drop all remaining mappings.
+end
+
+Main -> FrameCap : clear()
+note right: Release all CPU-side\nresource vectors back\nto default state.
+
+Main -> GLFW : glfwDestroyWindow(window)
+Main -> GLFW : glfwTerminate()
+
+Main --> User : return 0
+
+@enduml

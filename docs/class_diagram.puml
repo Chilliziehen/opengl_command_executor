@@ -1,0 +1,632 @@
+@startuml FrameReplayer_ClassDiagram
+' =============================================================================
+' Class Diagram — drawCommandsGL Frame Replayer
+' =============================================================================
+' Covers:
+'   1. FrameCapture (aggregate root) and its data-struct members
+'   2. Command polymorphism hierarchy (40+ GL command subclasses)
+'   3. ResourceAllocator / ResourceManager (GPU lifecycle)
+'   4. UniversalDMapper (capture-id ↔ GL-handle mapping)
+'   5. ShaderInterpreter (GLSL 300 es → 410 core)
+'   6. Singleton<Derived> (CRTP base)
+' =============================================================================
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 12
+skinparam classBackgroundColor #F5F5F5
+skinparam classBorderColor #333333
+skinparam packageBackgroundColor #FAFAFA
+title Frame Capture Replayer — Class Diagram
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 1: Infrastructure
+' ═══════════════════════════════════════════════════════════════════════════════
+
+class "Singleton<Derived>" <<CRTP>> {
+    + {static} instance(): Derived&
+    - Singleton()
+    - ~Singleton()
+    - Singleton(const Singleton&) = delete
+    - operator=(const Singleton&) = delete
+}
+note right of "Singleton<Derived>"
+  Thread-safe via C++11 magic statics.
+  Used by UniversalDMapper.
+end note
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 2: ID Mapping
+' ═══════════════════════════════════════════════════════════════════════════════
+
+class "UniversalDMapper<TKey,TVal>" <<singleton>> {
+    + addMapping(key, val): void
+    + getVal(key): TVal
+    + getKey(val): TKey
+    + containsKey(key): bool
+    + containsVal(val): bool
+    + removeMapping(key): void
+    + clear(): void
+    - m_mappingKeyToVal: unordered_map<TKey,TVal>
+    - m_mappingValToKey: unordered_map<TVal,TKey>
+}
+"Singleton<Derived>" <|-- "UniversalDMapper<TKey,TVal>"
+
+enum ResourceKind {
+    Buffer = 1
+    Texture = 2
+    Shader = 3
+    Program = 4
+    VertexArray = 5
+    Framebuffer = 6
+}
+
+typedef "ResourceMapper\n= UniversalDMapper<uint64_t>" as ResourceMapper
+
+"UniversalDMapper<TKey,TVal>" ..> ResourceMapper : «typedef»
+
+note right of ResourceMapper
+  Global singleton.
+  Key = encodeResourceKey(kind, captureId).
+  High 8 bits = ResourceKind, low 56 bits = capture ID.
+  Prevents collisions between resource types
+  (e.g. texture #4 vs shader #4).
+end note
+
+' Free functions using ResourceMapper
+class "MapperHelpers" <<utility>> {
+    {static} +addMappedHandle(kind, captureId, glHandle): void
+    {static} +getMappedHandle(kind, captureId): uint32_t
+    {static} +hasMappedHandle(kind, captureId): bool
+    {static} +removeMappedHandle(kind, captureId): void
+    {static} +clearAllMappedHandles(): void
+    {static} +getMappedHandleOr(kind, captureId, fallback): uint32_t
+    {static} +encodeResourceKey(kind, captureId): uint64_t
+}
+MapperHelpers ..> ResourceMapper
+MapperHelpers ..> ResourceKind
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 3: Data Structs (passive descriptors, no GL calls)
+' ═══════════════════════════════════════════════════════════════════════════════
+
+class CaptureBuffer <<struct>> {
+    + m_bufferId: uint32_t
+    + m_label: string
+    + m_target: uint32_t
+    + m_bufferType: string
+    + m_usageHint: uint32_t
+    + m_byteLength: uint64_t
+    + m_capturedByteLength: uint64_t
+    + m_hasBaselineBytes: bool
+    + m_sourceKind: string
+    + m_metadataPath: string
+    + m_binaryDataPath: string
+}
+
+class TextureWrapper <<struct>> {
+    + m_textureId: uint32_t
+    + m_label: string
+    + m_target: uint32_t
+    + m_width: uint32_t
+    + m_height: uint32_t
+    + m_depth: uint32_t
+    + m_internalFormat: uint32_t
+    + m_format: uint32_t
+    + m_pixelType: uint32_t
+    + m_compressed: bool
+    + m_mipmapLevels: uint32_t
+    + m_mipmapsGenerated: bool
+    + m_deleted: bool
+    + m_parameters: map<string,int32_t>
+    + m_sourceKind: string
+    + m_captureMethod: string
+    + m_byteLength: uint64_t
+    + m_capturedWidth: uint32_t
+    + m_capturedHeight: uint32_t
+    + m_capturedByteLength: uint64_t
+    + m_hasBaselineBytes: bool
+    + m_textureMetaPath: string
+    + m_textureBinaryPath: string
+}
+
+class CaptureShader <<struct>> {
+    + m_shaderId: uint32_t
+    + m_label: string
+    + m_shaderType: uint32_t
+    + m_source: string
+}
+
+class CaptureProgram <<struct>> {
+    + m_programId: uint32_t
+    + m_label: string
+    + m_attachedShaderIds: vector<uint32_t>
+    + m_linked: bool
+}
+
+class CaptureVertexArrayObject <<struct>> {
+    + m_vertexArrayId: uint32_t
+    + m_label: string
+    + m_vertexAttributes: map<string,VertexAttribute>
+    + m_elementArrayBufferId: uint32_t
+    + m_deleted: bool
+}
+class VertexAttribute <<struct>> {
+    + m_enabled: bool
+    + m_componentCount: uint32_t
+    + m_componentType: uint32_t
+    + m_normalized: bool
+    + m_stride: uint32_t
+    + m_offset: uint32_t
+    + m_bufferId: uint32_t
+    + m_attributeName: string
+}
+CaptureVertexArrayObject *-- VertexAttribute
+
+class CaptureFramebuffer <<struct>> {
+    + m_framebufferId: uint32_t
+    + m_label: string
+    + m_attachments: vector<FramebufferAttachment>
+}
+class FramebufferAttachment <<struct>> {
+    + m_attachmentPoint: uint32_t
+    + m_textureId: uint32_t
+    + m_mipmapLevel: uint32_t
+    + m_textureTarget: uint32_t
+}
+CaptureFramebuffer *-- FramebufferAttachment
+
+class CaptureState <<struct>> {
+    + m_currentProgramId: uint32_t
+    + m_currentFramebufferId: uint32_t
+    + m_currentActiveTextureUnit: uint32_t
+    + m_currentArrayBufferId: uint32_t
+    + m_currentElementArrayBufferId: uint32_t
+    + m_currentVertexArrayId: uint32_t
+    + m_currentTextureBindings: map<string,uint32_t>
+    + m_currentSamplerBindings: map<string,map<string,uint32_t>>
+    + m_vertexAttributes: map<string,VertexAttribute>
+    + m_viewport: vector<int32_t>
+    + m_capabilities: map<string,bool>
+    + m_clearColor: vector<float>
+    + m_clearDepth: float
+    + m_clearStencil: int32_t
+    + m_colorMask: vector<bool>
+    + m_depthMask: bool
+    + m_depthFunction: uint32_t
+    + m_blendFunction: BlendFunction
+    + m_blendEquation: BlendEquation
+    + m_cullFaceMode: uint32_t
+    + m_frontFaceOrientation: uint32_t
+    + m_scissorBox: vector<int32_t>
+    + m_pixelStoreParameters: map<string,int32_t>
+}
+CaptureState *-- VertexAttribute
+
+class CaptureManifest <<struct>> {
+    + m_format: string
+    + m_version: uint32_t
+    + m_captureModel: string
+    + m_generatedAt: string
+    + m_frameIndex: uint32_t
+    + m_canvas: CanvasDescriptor
+    + m_replayerCompatibility: ReplayerCompatibility
+    + m_diagnostics: DiagnosticsInfo
+    + m_projectRoot: string
+    + m_sandboxRoot: string
+    + m_files: ManifestFileIndex
+}
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 4: Capture Loader & FrameCapture (aggregation root)
+' ═══════════════════════════════════════════════════════════════════════════════
+
+class FrameCapture <<aggregate root>> {
+    + m_manifest: CaptureManifest
+    + m_buffers: vector<CaptureBuffer>
+    + m_textures: vector<TextureWrapper>
+    + m_shaders: vector<CaptureShader>
+    + m_programs: vector<CaptureProgram>
+    + m_vertexArrays: vector<CaptureVertexArrayObject>
+    + m_framebuffers: vector<CaptureFramebuffer>
+    + m_state: CaptureState
+    + m_commands: vector<CommandPtr>
+    --
+    + findBuffer(id): const CaptureBuffer*
+    + findTexture(id): const TextureWrapper*
+    + findShader(id): const CaptureShader*
+    + findProgram(id): const CaptureProgram*
+    + findVertexArray(id): const CaptureVertexArrayObject*
+    + findFramebuffer(id): const CaptureFramebuffer*
+    + bufferCount(): size_t
+    + textureCount(): size_t
+    + shaderCount(): size_t
+    + programCount(): size_t
+    + vertexArrayCount(): size_t
+    + framebufferCount(): size_t
+    + commandCount(): size_t
+    + clear(): void
+}
+
+FrameCapture *-- CaptureManifest
+FrameCapture *-- CaptureBuffer
+FrameCapture *-- TextureWrapper
+FrameCapture *-- CaptureShader
+FrameCapture *-- CaptureProgram
+FrameCapture *-- CaptureVertexArrayObject
+FrameCapture *-- CaptureFramebuffer
+FrameCapture *-- CaptureState
+FrameCapture o-- "CommandPtr" : owns commands
+
+class CaptureLoader <<utility>> {
+    {static} +loadFromDirectory(path, outCapture, outError): bool
+    --
+    {static} -parseManifest(path, outManifest, outError): bool
+    {static} -parseBuffers(path, manifest, outBuffers, outError): bool
+    {static} -parseTextures(path, manifest, outTextures, outError): bool
+    {static} -parseShaders(path, manifest, outShaders, outError): bool
+    {static} -parsePrograms(path, manifest, outPrograms, outError): bool
+    {static} -parseVertexArrays(path, manifest, outVertexArrays, outError): bool
+    {static} -parseFramebuffers(path, manifest, outFramebuffers, outError): bool
+    {static} -parseState(path, manifest, outState, outError): bool
+    {static} -parseCommands(path, manifest, outCommands, outError): bool
+}
+CaptureLoader ..> FrameCapture : populates
+CaptureLoader ..> nlohmann_json : «uses»
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 5: Command Hierarchy (polymorphic, ~40 subclasses)
+' ═══════════════════════════════════════════════════════════════════════════════
+
+typedef "CommandPtr = unique_ptr<Command>" as CommandPtr
+
+abstract class Command {
+    # m_eventId: uint32_t
+    # m_commandName: string
+    # {static} s_captureDirectory: string
+    --
+    + Command(eventId, commandName)
+    + getEventId(): uint32_t
+    + getCommandName(): const string&
+    + {abstract} execute(): void
+    {static} +setCaptureDirectory(path): void
+    # {static} captureDirectory(): const string&
+}
+
+' -- State Commands (no mapper lookup needed) --
+class ViewportCommand extends Command {
+    - m_bounds: vector<int32_t>
+    + execute(): void
+}
+class EnableCommand extends Command {
+    - m_capability: uint32_t
+    - m_enable: bool
+    + execute(): void
+}
+class ClearColorCommand extends Command {
+    - m_red,m_green,m_blue,m_alpha: float
+    + execute(): void
+}
+class ClearCommand extends Command {
+    - m_mask: uint32_t
+    - m_framebufferId: uint32_t
+    + execute(): void
+}
+class ScissorCommand extends Command {
+    - m_box: vector<int32_t>
+    + execute(): void
+}
+class BlendFunctionCommand extends Command {
+    - m_sourceFactor,m_destinationFactor: uint32_t
+    + execute(): void
+}
+class BlendEquationCommand extends Command {
+    - m_mode: uint32_t
+    + execute(): void
+}
+class CullFaceCommand extends Command {
+    - m_mode: uint32_t
+    + execute(): void
+}
+class FrontFaceCommand extends Command {
+    - m_orientation: uint32_t
+    + execute(): void
+}
+class DepthFunctionCommand extends Command {
+    - m_function: uint32_t
+    + execute(): void
+}
+class DepthMaskCommand extends Command {
+    - m_enabled: bool
+    + execute(): void
+}
+class ColorMaskCommand extends Command {
+    - m_red,m_green,m_blue,m_alpha: bool
+    + execute(): void
+}
+class LineWidthCommand extends Command {
+    - m_width: float
+    + execute(): void
+}
+class StencilFunctionCommand extends Command {
+    - m_function: uint32_t
+    - m_reference: int32_t
+    - m_mask: uint32_t
+    + execute(): void
+}
+class StencilOperationCommand extends Command {
+    - m_stencilFail,m_depthFail,m_depthPass: uint32_t
+    + execute(): void
+}
+class StencilMaskCommand extends Command {
+    - m_mask: uint32_t
+    + execute(): void
+}
+class BlendColorCommand extends Command {
+    - m_red,m_green,m_blue,m_alpha: float
+    + execute(): void
+}
+
+' -- Resource-Binding Commands (mapper lookup needed) --
+class UseProgramCommand extends Command {
+    - m_programId: uint32_t
+    + execute(): void
+}
+class BindFramebufferCommand extends Command {
+    - m_target: uint32_t
+    - m_framebufferId: uint32_t
+    + execute(): void
+}
+class BindBufferCommand extends Command {
+    - m_target,m_bufferId: uint32_t
+    + execute(): void
+}
+class BindBufferBaseCommand extends Command {
+    - m_target,m_index,m_bufferId: uint32_t
+    + execute(): void
+}
+class BindBufferRangeCommand extends Command {
+    - m_target,m_index,m_bufferId: uint32_t
+    - m_offset,m_size: uint64_t
+    + execute(): void
+}
+class BindTextureCommand extends Command {
+    - m_target,m_textureId,m_unit: uint32_t
+    + execute(): void
+}
+class ActiveTextureCommand extends Command {
+    - m_unit: uint32_t
+    + execute(): void
+}
+class BindVertexArrayCommand extends Command {
+    - m_vertexArrayId: uint32_t
+    + execute(): void
+}
+class VertexAttribPointerCommand extends Command {
+    - m_attributeIndex,m_componentCount,m_componentType: uint32_t
+    - m_normalized: bool
+    - m_stride,m_offset,m_bufferId: uint32_t
+    - m_attributeName: string
+    + execute(): void
+    + attributeIndex(): uint32_t
+    + attributeName(): const string&
+}
+class VertexAttribEnableCommand extends Command {
+    - m_attributeIndex: uint32_t
+    - m_enable: bool
+    + execute(): void
+}
+class VertexAttribDivisorCommand extends Command {
+    - m_attributeIndex,m_divisor: uint32_t
+    + execute(): void
+}
+
+' -- Draw Commands --
+class DrawElementsCommand extends Command {
+    - m_drawMode,m_indexCount,m_indexType: uint32_t
+    - m_indexOffset: uint32_t
+    - m_framebufferId: uint32_t
+    + execute(): void
+}
+class DrawArraysCommand extends Command {
+    - m_drawMode,m_firstVertex,m_vertexCount: uint32_t
+    - m_framebufferId: uint32_t
+    + execute(): void
+}
+
+' -- Resource Lifecycle --
+class CreateResourceCommand extends Command {
+    - m_resourceKind: ResourceKind
+    - m_resourceId: uint32_t
+    + execute(): void
+}
+class DeleteResourceCommand extends Command {
+    - m_resourceKind: ResourceKind
+    - m_resourceId: uint32_t
+    + execute(): void
+}
+
+' -- Data Upload --
+class BufferDataCommand extends Command {
+    - m_target,m_bufferId: uint32_t
+    - m_offset: uint64_t
+    - m_data: CommandDataArgument
+    + execute(): void
+}
+class TextureImageCommand extends Command {
+    - m_target,m_mipmapLevel,m_internalFormat: uint32_t
+    - m_width,m_height: uint32_t
+    - m_format,m_pixelType,m_textureId: uint32_t
+    - m_xOffset,m_yOffset: uint32_t
+    - m_data: CommandDataArgument
+    + execute(): void
+}
+class GenerateMipmapCommand extends Command {
+    - m_target,m_textureId: uint32_t
+    + execute(): void
+}
+
+' -- Shader / Program --
+class ShaderSourceCommand extends Command {
+    - m_shaderId: uint32_t
+    - m_source: string
+    + execute(): void
+}
+class AttachShaderCommand extends Command {
+    - m_programId,m_shaderId: uint32_t
+    + execute(): void
+}
+class LinkProgramCommand extends Command {
+    - m_programId: uint32_t
+    + execute(): void
+}
+
+' -- Uniforms --
+class UniformCommand extends Command {
+    - m_uniformName: string
+    - m_programId: uint32_t
+    - m_valueOmitted: bool
+    - m_valueOmittedReason: string
+    - m_isSnapshot: bool
+    - m_data: CommandDataArgument
+    + execute(): void
+}
+class UniformMatrixCommand extends Command {
+    - m_uniformName: string
+    - m_programId: uint32_t
+    - m_transpose: bool
+    - m_valueOmitted: bool
+    - m_data: CommandDataArgument
+    + execute(): void
+}
+class UniformSamplerCommand extends Command {
+    - m_uniformName: string
+    - m_programId,m_textureUnit: uint32_t
+    - m_valueOmitted: bool
+    + execute(): void
+}
+
+' -- Framebuffer --
+class FramebufferTexture2DCommand extends Command {
+    - m_framebufferId,m_attachment,m_textureTarget: uint32_t
+    - m_textureId,m_mipmapLevel: uint32_t
+    + execute(): void
+}
+class BlitFramebufferCommand extends Command {
+    - m_sourceX0..m_destinationY1: int32_t
+    - m_mask,m_filter: uint32_t
+    + execute(): void
+}
+
+' -- No-Op --
+class NoOpCommand extends Command {
+    + execute(): void  // empty
+}
+
+' Command payload types
+class UniformDataPayload <<variant>> {
+    + m_arrayType: string
+    + m_data: vector<double>
+}
+class UploadReference <<variant>> {
+    + m_uploadPath: string
+    + m_byteLength: uint64_t
+}
+typedef "CommandDataArgument\n= variant<UniformDataPayload,UploadReference,monostate>" as CommandDataArg
+
+Command ..> CommandDataArg
+BufferDataCommand ..> CommandDataArg
+TextureImageCommand ..> CommandDataArg
+UniformCommand ..> CommandDataArg
+UniformMatrixCommand ..> CommandDataArg
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 6: GPU Resource Management
+' ═══════════════════════════════════════════════════════════════════════════════
+
+class ResourceAllocator <<utility>> {
+    {static} +allocateBuffer(metadata): uint32_t
+    {static} +allocateTexture(metadata): uint32_t
+    {static} +allocateShader(metadata): uint32_t
+    {static} +allocateProgram(metadata): uint32_t
+    {static} +allocateVertexArray(metadata): uint32_t
+    {static} +allocateFramebuffer(metadata): uint32_t
+    {static} +deleteBuffer(captureId): void
+    {static} +deleteTexture(captureId): void
+    {static} +deleteShader(captureId): void
+    {static} +deleteProgram(captureId): void
+    {static} +deleteVertexArray(captureId): void
+    {static} +deleteFramebuffer(captureId): void
+    {static} +allocateAllResources(capture, outError): bool
+    {static} +deleteAllResources(capture): void
+}
+ResourceAllocator ..> ResourceMapper : registers handles
+ResourceAllocator ..> ResourceKind
+ResourceAllocator ..> "OpenGL\n(glad)" : calls glGen* / glDelete*
+
+class ResourceManager <<utility>> {
+    {static} +uploadBufferData(metadata, captureDir, outError): bool
+    {static} +uploadTextureData(metadata, captureDir, isRenderTarget, outError): bool
+    {static} +compileShader(metadata, outError): bool
+    {static} +linkProgram(metadata, attributeBindings, outError): bool
+    {static} +restoreState(capture, outError): bool
+    {static} +restoreVertexArrays(capture, outError): bool
+    {static} +restoreFramebuffers(capture, outError): bool
+    {static} +uploadAllResources(capture, captureDir, outError): bool
+}
+ResourceManager ..> ResourceMapper : looks up handles
+ResourceManager ..> ResourceKind
+ResourceManager ..> "OpenGL\n(glad)" : calls gl* upload/bind/draw
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 7: Shader Translation
+' ═══════════════════════════════════════════════════════════════════════════════
+
+class ShaderInterpreter <<utility>> {
+    {static} +translate(glslEs300Source, outError): string
+    {static} +translateInPlace(source, outError): bool
+    --
+    {static} -replaceVersion(source): void
+    {static} -removePrecisionStatements(source): void
+    {static} -removePrecisionQualifiers(source): void
+    {static} -removeExtensionDirectives(source): void
+    {static} -addUboLayoutQualifier(source): void
+    {static} -addFragmentOutputLayout(source): void
+}
+note right of ShaderInterpreter
+  Regex-based translation:
+  #version 300 es → #version 410 core
+  Removes: precision, highp/mediump/lowp,
+  #extension directives
+  Adds: layout(std140) to UBO blocks
+  (fragment output layout handled
+  implicitly by GLSL 410 core)
+end note
+
+' ═══════════════════════════════════════════════════════════════════════════════
+' SECTION 8: Relationships Between Major Components
+' ═══════════════════════════════════════════════════════════════════════════════
+
+' ResourceAllocator reads data structs to create GL objects
+ResourceAllocator ..> CaptureBuffer
+ResourceAllocator ..> TextureWrapper
+ResourceAllocator ..> CaptureShader
+ResourceAllocator ..> CaptureProgram
+ResourceAllocator ..> CaptureVertexArrayObject
+ResourceAllocator ..> CaptureFramebuffer
+
+' ResourceManager reads data structs to upload data
+ResourceManager ..> CaptureBuffer
+ResourceManager ..> TextureWrapper
+ResourceManager ..> CaptureShader
+ResourceManager ..> CaptureProgram
+ResourceManager ..> CaptureState
+ResourceManager ..> CaptureVertexArrayObject
+ResourceManager ..> CaptureFramebuffer
+ResourceManager ..> ShaderInterpreter : calls translateInPlace()
+
+' Command execution uses ResourceMapper and ResourceAllocator
+Command ..> ResourceMapper : getMappedHandle / getMappedHandleOr
+CreateResourceCommand ..> ResourceAllocator : allocate on-demand
+DeleteResourceCommand ..> ResourceAllocator : delete on-demand
+
+@enduml
