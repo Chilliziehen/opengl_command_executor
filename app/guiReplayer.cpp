@@ -48,6 +48,17 @@ GLuint g_defaultFbo = 0, g_defaultColorTex = 0, g_defaultDepthRbo = 0;
 GLuint g_previewFbo = 0, g_previewTex = 0;
 int g_previewW = 0, g_previewH = 0;
 
+// Render-target attachment selector. The current draw FBO's attachments are
+// enumerated on each step; the user can pick which one the preview shows.
+struct AttachmentSlot {
+  std::string label;  // e.g. "Color 0", "Depth"
+  bool isDepth;       // depth attachments are shown as grayscale
+  int colorIndex;     // GL_COLOR_ATTACHMENT0 + colorIndex (color slots only)
+};
+std::vector<AttachmentSlot> g_attachments;
+int g_selectedAttachment = 0;
+GLuint g_previewSrcFbo = 0; // FBO whose attachment we're previewing (content persists)
+
 // The replay's GL state, captured after each step. Restored before the next
 // step so the preview/ImGui work in between can't corrupt the replay.
 GLStateSnapshot g_engineState;
@@ -99,32 +110,103 @@ void createPreviewTarget(int w, int h) {
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-// Blit the framebuffer the current command drew to into the preview texture.
-// Depth-only FBOs (e.g. shadow maps) have no colour buffer — the blit is
-// skipped to avoid GL_INVALID_OPERATION and potential GPU-side stalls.
-void updatePreview() {
-  GLuint srcFbo = g_engine.currentDrawFramebuffer();
+// Discover which attachments the given FBO has (color 0..N + depth), so the UI
+// can offer them. FBO content persists regardless of current bindings, so this
+// (and rendering below) can run any frame, not just right after a step.
+void enumerateAttachments(GLuint fbo) {
+  g_attachments.clear();
+  if (fbo == 0) {
+    g_attachments.push_back({"Back buffer", false, 0});
+  } else {
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+    GLint maxColor = 8;
+    glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &maxColor);
+    for (int i = 0; i < maxColor; ++i) {
+      GLint type = GL_NONE;
+      glGetFramebufferAttachmentParameteriv(
+          GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i,
+          GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
+      if (type != GL_NONE)
+        g_attachments.push_back({"Color " + std::to_string(i), false, i});
+    }
+    GLint dt = GL_NONE, dst = GL_NONE;
+    glGetFramebufferAttachmentParameteriv(GL_READ_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &dt);
+    glGetFramebufferAttachmentParameteriv(GL_READ_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT,
+        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &dst);
+    if (dt != GL_NONE || dst != GL_NONE)
+      g_attachments.push_back({"Depth", true, 0});
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+  }
+  if (g_selectedAttachment >= static_cast<int>(g_attachments.size()))
+    g_selectedAttachment = 0;
+  while (glGetError() != GL_NO_ERROR) {}
+}
 
+// Blit one color attachment of `fbo` into the preview texture.
+void previewColorAttachment(GLuint fbo, int colorIndex) {
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_previewFbo);
   glViewport(0, 0, g_previewW, g_previewH);
   glClearColor(0.12f, 0.12f, 0.14f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
-
-  glBindFramebuffer(GL_READ_FRAMEBUFFER, srcFbo);
-  GLint colourAttachType = GL_NONE;
-  if (srcFbo != 0) {
-    glGetFramebufferAttachmentParameteriv(
-        GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-        GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &colourAttachType);
-  } else {
-    colourAttachType = GL_RENDERBUFFER; // default FB always has a back buffer
-  }
-  if (colourAttachType != GL_NONE) {
-    glBlitFramebuffer(0, 0, g_canvasW, g_canvasH, 0, 0, g_previewW, g_previewH,
-                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
-  }
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+  if (fbo != 0)
+    glReadBuffer(GL_COLOR_ATTACHMENT0 + colorIndex);
+  glBlitFramebuffer(0, 0, g_canvasW, g_canvasH, 0, 0, g_previewW, g_previewH,
+                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+// Read the depth attachment of `fbo`, normalize to [0,1] for contrast, and
+// upload it to the preview texture as grayscale.
+void previewDepthAttachment(GLuint fbo) {
+  const size_t n = static_cast<size_t>(g_canvasW) * g_canvasH;
+  std::vector<float> depth(n, 1.0f);
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+  glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  glReadPixels(0, 0, g_canvasW, g_canvasH, GL_DEPTH_COMPONENT, GL_FLOAT, depth.data());
+  glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+
+  float mn = 1e30f, mx = -1e30f;
+  for (float d : depth) { if (d < mn) mn = d; if (d > mx) mx = d; }
+  float range = (mx > mn) ? (mx - mn) : 1.0f;
+
+  std::vector<unsigned char> rgba(n * 4);
+  for (size_t i = 0; i < n; ++i) {
+    unsigned char g = static_cast<unsigned char>((depth[i] - mn) / range * 255.0f);
+    rgba[i * 4 + 0] = g; rgba[i * 4 + 1] = g; rgba[i * 4 + 2] = g; rgba[i * 4 + 3] = 255;
+  }
+  glBindTexture(GL_TEXTURE_2D, g_previewTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, g_canvasW, g_canvasH, GL_RGBA,
+                  GL_UNSIGNED_BYTE, rgba.data());
+  glBindTexture(GL_TEXTURE_2D, 0);
   while (glGetError() != GL_NO_ERROR) {}
+}
+
+// Render the currently-selected attachment of g_previewSrcFbo into the preview.
+void renderPreview() {
+  if (g_attachments.empty()) {
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, g_previewFbo);
+    glViewport(0, 0, g_previewW, g_previewH);
+    glClearColor(0.12f, 0.12f, 0.14f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return;
+  }
+  const AttachmentSlot &slot = g_attachments[g_selectedAttachment];
+  if (slot.isDepth)
+    previewDepthAttachment(g_previewSrcFbo);
+  else
+    previewColorAttachment(g_previewSrcFbo, slot.colorIndex);
+  while (glGetError() != GL_NO_ERROR) {}
+}
+
+// Called after each step: capture the draw FBO + its attachment list, render.
+void updatePreview() {
+  g_previewSrcFbo = g_engine.currentDrawFramebuffer();
+  enumerateAttachments(g_previewSrcFbo);
+  renderPreview();
 }
 
 // Forward declarations.
@@ -239,6 +321,17 @@ int main(int, char **) {
   // Auto-load a default capture so the window isn't blank on launch; the user
   // can still pick another via "Load Capture...".
   loadCapture(std::string(PROJECT_ROOT_DIR) + "/example/new_structured_capture");
+
+  // Headless test hooks: GUISEEK=<eventCount>, GUIATTACH=<attachmentIndex>.
+  if (g_loaded) {
+    if (const char *s = std::getenv("GUISEEK")) doSeek(static_cast<size_t>(std::atol(s)));
+    if (const char *a = std::getenv("GUIATTACH")) {
+      g_selectedAttachment = std::atoi(a);
+      if (g_selectedAttachment >= static_cast<int>(g_attachments.size()))
+        g_selectedAttachment = 0;
+      renderPreview();
+    }
+  }
 
   bool playing = false;
   double lastStepTime = 0.0;
@@ -439,9 +532,25 @@ int main(int, char **) {
     ImGui::SetNextWindowSize(ImVec2(vsz.x - leftW, vsz.y - topH - logH));
     ImGui::Begin("Render Target", nullptr, panelFlags);
     if (g_loaded) {
-      GLuint fbo = g_engine.currentDrawFramebuffer();
-      ImGui::Text("Bound draw FBO: %u    preview %dx%d", fbo, g_previewW,
-                  g_previewH);
+      // Attachment selector: switch between the draw FBO's color attachments and
+      // its depth attachment (depth shown as normalized grayscale).
+      if (!g_attachments.empty()) {
+        ImGui::SetNextItemWidth(160.0f);
+        const char *curLabel = g_attachments[g_selectedAttachment].label.c_str();
+        if (ImGui::BeginCombo("Attachment", curLabel)) {
+          for (int i = 0; i < static_cast<int>(g_attachments.size()); ++i) {
+            bool sel = (i == g_selectedAttachment);
+            if (ImGui::Selectable(g_attachments[i].label.c_str(), sel)) {
+              g_selectedAttachment = i;
+              renderPreview(); // re-render from the (persistent) FBO content
+            }
+            if (sel) ImGui::SetItemDefaultFocus();
+          }
+          ImGui::EndCombo();
+        }
+        ImGui::SameLine();
+      }
+      ImGui::Text("draw FBO %u    %dx%d", g_previewSrcFbo, g_previewW, g_previewH);
       ImVec2 avail = ImGui::GetContentRegionAvail();
       float aspect =
           g_previewH > 0 ? (float)g_previewW / (float)g_previewH : 1.0f;
