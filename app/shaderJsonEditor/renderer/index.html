@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:;">
+  <title>Shader JSON Editor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <button id="btn-open">Open</button>
+    <button id="btn-save">Save</button>
+    <button id="btn-save-as">Save As</button>
+    <span id="shader-count">No file loaded</span>
+  </div>
+
+  <!-- Main content -->
+  <div id="main-container">
+    <div id="sidebar">
+      <div id="shader-list"></div>
+    </div>
+    <div id="editor-container"></div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="statusbar">
+    <span id="status-file">No file</span>
+    <span id="status-shaders">0 shaders</span>
+    <span id="status-cursor">Line 1:1</span>
+  </div>
+
+  <script src="../node_modules/monaco-editor/min/vs/loader.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

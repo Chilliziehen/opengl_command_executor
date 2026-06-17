@@ -1,0 +1,155 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1e1e1e;
+  color: #cccccc;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Toolbar */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #2d2d30;
+  border-bottom: 1px solid #3e3e42;
+  flex-shrink: 0;
+}
+
+#toolbar button {
+  padding: 4px 16px;
+  border: 1px solid #555;
+  background: #3c3c3c;
+  color: #ccc;
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 3px;
+}
+
+#toolbar button:hover {
+  background: #505050;
+}
+
+#shader-count {
+  margin-left: auto;
+  font-size: 12px;
+  color: #888;
+}
+
+/* Main container */
+#main-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Sidebar */
+#sidebar {
+  width: 260px;
+  min-width: 180px;
+  background: #252526;
+  border-right: 1px solid #3e3e42;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+#shader-list {
+  padding: 4px;
+}
+
+.shader-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shader-item:hover {
+  background: #2a2d2e;
+}
+
+.shader-item.selected {
+  background: #094771;
+}
+
+.shader-item .dirty-indicator {
+  font-size: 12px;
+  width: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.shader-item .shader-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.shader-item .shader-label {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shader-item .shader-meta {
+  font-size: 11px;
+  color: #888;
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.shader-item .shader-type {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.shader-type.vertex {
+  background: #1b5e20;
+  color: #81c784;
+}
+
+.shader-type.fragment {
+  background: #0d47a1;
+  color: #64b5f6;
+}
+
+.shader-type.unknown {
+  background: #424242;
+  color: #9e9e9e;
+}
+
+/* Editor */
+#editor-container {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Status bar */
+#statusbar {
+  display: flex;
+  gap: 16px;
+  padding: 3px 12px;
+  background: #007acc;
+  color: #fff;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+#status-cursor {
+  margin-left: auto;
+}
