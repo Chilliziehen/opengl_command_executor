@@ -121,14 +121,24 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
         if (format == 0 || type == 0) return true; // can't define; leave undefined
         GLsizei w = static_cast<GLsizei>(metadata.m_width);
         GLsizei h = static_cast<GLsizei>(metadata.m_height);
+        // The replay never enables GL_FRAMEBUFFER_SRGB and the Unity shaders do
+        // gamma manually (an explicit LinearToSRGB pass writes the final color).
+        // If we allocate a color RT with its captured *sRGB* internal format, GL
+        // auto-decodes sRGB→linear on sample, which exactly cancels the shader's
+        // LinearToSRGB encode — the final pass becomes a no-op and the screen
+        // shows raw linear values (too dark). Allocate sRGB color targets as their
+        // linear equivalent so the manual conversion is the only one applied.
+        uint32_t rtInternalFormat = metadata.m_internalFormat;
+        if (rtInternalFormat == 0x8C43) rtInternalFormat = 0x8058; // SRGB8_ALPHA8→RGBA8
+        else if (rtInternalFormat == 0x8C41) rtInternalFormat = 0x8051; // SRGB8→RGB8
         if (metadata.m_target == static_cast<uint32_t>(GL_TEXTURE_CUBE_MAP)) {
             for (int face = 0; face < 6; ++face)
                 glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
-                             static_cast<GLint>(metadata.m_internalFormat),
+                             static_cast<GLint>(rtInternalFormat),
                              w, h, 0, format, type, nullptr);
         } else {
             glTexImage2D(metadata.m_target, 0,
-                         static_cast<GLint>(metadata.m_internalFormat),
+                         static_cast<GLint>(rtInternalFormat),
                          w, h, 0, format, type, nullptr);
         }
         // Render targets are single-level; default to a non-mipmap filter so a
@@ -155,6 +165,20 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
         pixelData = data.data();
     }
 
+    // Unity reflection/environment probes are HDR cube maps; the shader decodes
+    // them with an HDR multiplier (e.g. unity_SpecCube0_HDR.x ≈ 4.6). But the
+    // capture stores the probe as an RGBA8 readPixels blob — i.e. sRGB-encoded
+    // *display* values, not the original linear/encoded radiance. Sampling that
+    // as a plain RGBA8 (linear) texture and then ×4.6 over-brightens the indirect
+    // light ~4-5×, washing lit surfaces out to flat, bright probe color. Upload
+    // RGBA8 cube maps as sRGB so sampling linearizes them first; the HDR decode
+    // then lands in the right range (verified: cube gray matches the ground).
+    uint32_t uploadInternalFormat = metadata.m_internalFormat;
+    if (metadata.m_target == static_cast<uint32_t>(GL_TEXTURE_CUBE_MAP) &&
+        metadata.m_internalFormat == 0x8058 /*RGBA8*/) {
+        uploadInternalFormat = 0x8C43; // SRGB8_ALPHA8
+    }
+
     // capturedWidth/Height may differ from width/height (downsampled 1/4)
     GLsizei uploadWidth  = pixelData ? static_cast<GLsizei>(metadata.m_capturedWidth)  : static_cast<GLsizei>(metadata.m_width);
     GLsizei uploadHeight = pixelData ? static_cast<GLsizei>(metadata.m_capturedHeight) : static_cast<GLsizei>(metadata.m_height);
@@ -169,7 +193,7 @@ bool ResourceManager::uploadTextureData(const TextureWrapper& metadata,
             // faces (best effort — enough to make the cube map complete).
             for (int face = 0; face < 6; ++face) {
                 glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0,
-                             static_cast<GLint>(metadata.m_internalFormat),
+                             static_cast<GLint>(uploadInternalFormat),
                              uploadWidth, uploadHeight, 0,
                              format, type, pixelData);
             }
@@ -396,7 +420,15 @@ bool ResourceManager::restoreState(const FrameCapture& capture,
 
     // ---- culling ----
     glCullFace(state.m_cullFaceMode);
-    glFrontFace(state.m_frontFaceOrientation);
+    // Invert the captured front-face winding. Unity authors its clip space
+    // left-handed (and its meshes wind accordingly); when its matrices are
+    // replayed verbatim in right-handed desktop GL the effective triangle
+    // winding is reversed. With the captured GL_CCW, back-face culling then
+    // keeps the BACK faces — geometry self-occludes wrong (occluded faces show
+    // through) and lit objects show their unlit far side (flat/blue). Flipping
+    // the front-face orientation restores correct front-face rendering.
+    glFrontFace(state.m_frontFaceOrientation == 0x0901 /*GL_CCW*/ ? GL_CW
+                                                                  : GL_CCW);
 
     // ---- color mask ----
     if (state.m_colorMask.size() >= 4)

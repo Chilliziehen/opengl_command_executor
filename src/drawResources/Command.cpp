@@ -210,7 +210,13 @@ void CullFaceCommand::execute() { glCullFace(m_mode); }
 
 FrontFaceCommand::FrontFaceCommand(uint32_t eventId, uint32_t orientation)
     : Command(eventId, "frontFace"), m_orientation(orientation) {}
-void FrontFaceCommand::execute() { glFrontFace(m_orientation); }
+void FrontFaceCommand::execute() {
+  // Invert winding to match ResourceManager::restoreState: Unity's left-handed
+  // clip space reverses effective triangle winding when its matrices are
+  // replayed in right-handed desktop GL, so the captured GL_CCW/GL_CW must be
+  // flipped or back-face culling keeps the wrong (back) faces.
+  glFrontFace(m_orientation == 0x0901 /*GL_CCW*/ ? GL_CW : GL_CCW);
+}
 
 DepthFunctionCommand::DepthFunctionCommand(uint32_t eventId, uint32_t function)
     : Command(eventId, "depthFunc"), m_function(function) {}
